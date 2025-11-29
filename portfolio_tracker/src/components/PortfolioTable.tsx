@@ -1,4 +1,5 @@
 import { useState, useEffect} from "react";
+import { Pencil, Trash2 } from "lucide-react";
 import type { Stock } from "../types/Stock";
 
 interface PortfolioTableProps {
@@ -33,6 +34,7 @@ export default function PortfolioTable({ stocks }: PortfolioTableProps) {
             <th className="p-3 w-1/8 text-center">Value</th>
             <th className="p-3 w-1/8 text-center">Return %</th>
             <th className="p-3 w-1/8 text-center">P/L</th>
+            <th className="p-3 w-[90px] text-center"></th>
           </tr>
         </thead>
         <tbody>
@@ -65,6 +67,16 @@ export default function PortfolioTable({ stocks }: PortfolioTableProps) {
               </td>
               <td className={`p-3 text-center font-bold ${s.pnl >= 0 ? "text-green-600" : "text-red-600"}`}>
                 ${s.pnl.toLocaleString()}
+              </td>
+              <td className="p-3 text-center">
+                <div className="flex justify-center gap-3">
+                  <button className="hover:scale-110 transition">
+                    <Pencil className="w-5 h-4 stroke-[1.75] text-black" />
+                  </button>
+                  <button className="hover:scale-110 transition">
+                    <Trash2 className="w-5 h-4 stroke-[1.75] text-black" />
+                  </button>
+                </div>
               </td>
             </tr>
           ))}
