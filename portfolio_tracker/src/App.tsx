@@ -3,10 +3,10 @@ import type { Stock } from "./types/Stock";
 
 export default function App() {
   const mockStocks: Stock[] = [
-    { ticker: "AAPL", shares: 10, value: 2150, returnPct: 6.35, pnl: 128 },
-    { ticker: "MSFT", shares: 7, value: 1975, returnPct: 3.81, pnl: 72 },
-    { ticker: "NVDA", shares: 5, value: 2430, returnPct: -4.12, pnl: -105 },
-    { ticker: "AMZN", shares: 3, value: 552, returnPct: 12.88, pnl: 63 },
+    { ticker: "AAPL", name: "Apple", shares: 10, value: 2150, returnPct: 6.35, pnl: 128 },
+    { ticker: "MSFT", name: "Microsoft", shares: 7, value: 1975, returnPct: 3.81, pnl: 72 },
+    { ticker: "NVDA", name: "Nvidia", shares: 5, value: 2430, returnPct: -4.12, pnl: -105 },
+    { ticker: "AMZN", name: "Amazon", shares: 3, value: 552, returnPct: 12.88, pnl: 63 },
   ];
 
   return (

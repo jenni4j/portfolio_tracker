@@ -13,6 +13,7 @@ export default function PortfolioTable({ stocks }: PortfolioTableProps) {
         <thead className="bg-[#e9ecf1] text-left uppercase text-xs tracking-wider font-bold">
           <tr>
             <th className="p-3">Ticker</th>
+            <th className="p-3">Company</th>
             <th className="p-3">Shares</th>
             <th className="p-3">Value</th>
             <th className="p-3">Return %</th>
@@ -23,6 +24,7 @@ export default function PortfolioTable({ stocks }: PortfolioTableProps) {
           {stocks.map((s, i) => (
             <tr key={s.ticker} className={`${i % 2 === 0 ? "bg-white" : "bg-[#eef4ff]"}`}>
               <td className="p-3 font-semibold">{s.ticker}</td>
+              <td className="p-3">{s.name}</td>
               <td className="p-3">{s.shares}</td>
               <td className="p-3">${s.value.toLocaleString()}</td>
               <td className={`p-3 font-bold ${s.returnPct >= 0 ? "text-green-600" : "text-red-600"}`}>
