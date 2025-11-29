@@ -6,4 +6,6 @@ export interface Stock {
     value: number;
     returnPct: number;
     pnl: number;
+    priceWhenAdded: number;
+    lastPrice: number;
   }

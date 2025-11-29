@@ -7,11 +7,13 @@ interface PortfolioTableProps {
 
 export default function PortfolioTable({ stocks }: PortfolioTableProps) {
   const [openName, setOpenName] = useState<string | null>(null);
+  const [openPnl, setOpenPnl] = useState<number | null>(null);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setOpenName(null);
+        setOpenPnl(null);
       }
     };
     document.addEventListener("keydown", handleKeyDown);
@@ -59,8 +61,20 @@ export default function PortfolioTable({ stocks }: PortfolioTableProps) {
               <td className={`p-3 font-bold ${s.returnPct >= 0 ? "text-green-600" : "text-red-600"}`}>
                 {s.returnPct.toFixed(2)}%
               </td>
-              <td className={`p-3 font-bold ${s.pnl >= 0 ? "text-green-600" : "text-red-600"}`}>
-                ${s.pnl.toLocaleString()}
+              <td className={`p-3 font-bold relative ${s.pnl >= 0 ? "text-green-600" : "text-red-600"}`}>
+                <span
+                    className="underline cursor-pointer"
+                    onClick={() =>
+                      setOpenPnl(openPnl === s.pnl? null : s.pnl)
+                    }
+                  >
+                    ${s.pnl.toLocaleString()}
+                  </span>
+                  {openPnl === s.pnl && (
+                    <div className="absolute left-0 top-full mt-1 w-64 max-w-[20rem] p-3 text-sm text-black bg-white rounded shadow-lg z-10 break-words border border-gray-300">
+                      <div><strong>Price when added:</strong> ${s.priceWhenAdded.toLocaleString()}</div>
+                    </div>
+                  )}
               </td>
             </tr>
           ))}
