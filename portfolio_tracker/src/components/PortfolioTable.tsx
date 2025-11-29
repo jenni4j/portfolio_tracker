@@ -34,7 +34,7 @@ export default function PortfolioTable({ stocks }: PortfolioTableProps) {
             <th className="p-3 w-1/8 text-center">Value</th>
             <th className="p-3 w-1/8 text-center">Return %</th>
             <th className="p-3 w-1/8 text-center">P/L</th>
-            <th className="p-3 w-[90px] text-center"></th>
+            <th className="p-3 w-[60px] text-center"></th>
           </tr>
         </thead>
         <tbody>
@@ -81,6 +81,13 @@ export default function PortfolioTable({ stocks }: PortfolioTableProps) {
             </tr>
           ))}
         </tbody>
+        <div className="w-full flex justify-center mt-3">
+          <button
+            className="px-1 py-2 text-sm font-semibold border border-gray-300 rounded-md bg-white shadow-sm hover:bg-[#eef4ff] transition"
+          >
+            + Add Entry
+          </button>
+        </div>
       </table>
     </div>
   );
