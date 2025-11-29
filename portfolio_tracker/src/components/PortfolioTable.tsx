@@ -21,7 +21,7 @@ export default function PortfolioTable({ stocks }: PortfolioTableProps) {
 
   return (
     <div className="w-full max-w-5xl mx-auto mt-10">
-      <h1 className="text-4xl font-bold mb-6 tracking-wide">PORTFOLIO</h1>
+      <h1 className="text-2xl font-bold mb-6 tracking-wide">Portfolio 1</h1>
 
       <table className="w-full table-fixed text-sm border-collapse shadow-lg">
         <thead className="bg-[#e9ecf1] text-left uppercase text-xs tracking-wider font-bold">
