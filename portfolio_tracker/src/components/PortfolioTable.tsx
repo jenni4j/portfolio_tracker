@@ -1,3 +1,4 @@
+import { useState, useEffect} from "react";
 import type { Stock } from "../types/Stock";
 
 interface PortfolioTableProps {
@@ -5,6 +6,18 @@ interface PortfolioTableProps {
 }
 
 export default function PortfolioTable({ stocks }: PortfolioTableProps) {
+  const [openName, setOpenName] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setOpenName(null);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   return (
     <div className="w-full max-w-5xl mx-auto mt-10">
       <h1 className="text-4xl font-bold mb-6 tracking-wide">PORTFOLIO</h1>
@@ -24,7 +37,23 @@ export default function PortfolioTable({ stocks }: PortfolioTableProps) {
           {stocks.map((s, i) => (
             <tr key={s.ticker} className={`${i % 2 === 0 ? "bg-white" : "bg-[#eef4ff]"}`}>
               <td className="p-3 font-semibold">{s.ticker}</td>
-              <td className="p-3">{s.name}</td>
+              {/* Added company description under the company name as a click tooltip */}
+              <td className="p-3 relative">
+                <span
+                  className="underline cursor-pointer"
+                  onClick={() =>
+                    setOpenName(openName === s.name ? null : s.name)
+                  }
+                >
+                  {s.name}
+                </span>
+
+                {openName === s.name && (
+                  <div className="absolute left-0 top-full mt-1 w-64 max-w-[20rem] p-3 text-sm text-black bg-white rounded shadow-lg z-10 break-words border border-gray-300">
+                    {s.description}
+                  </div>
+                )}
+              </td>
               <td className="p-3">{s.shares}</td>
               <td className="p-3">${s.value.toLocaleString()}</td>
               <td className={`p-3 font-bold ${s.returnPct >= 0 ? "text-green-600" : "text-red-600"}`}>
