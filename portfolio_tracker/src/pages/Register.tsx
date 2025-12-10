@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "../lib/supabaseClient";
 
 export default function Register() {
   const [email, setEmail] = useState("");
@@ -11,20 +12,18 @@ export default function Register() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const res = await fetch("http://localhost:5001/api/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
     });
 
-    const data = await res.json();
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
 
-    if (res.ok) {
-        navigate("/login");
-      } else {
-        setMessage(data.error || "Registration failed");
-      }
-    };
+    navigate("/login");
+  };
 
   return (
     <div className="flex justify-center mt-20">

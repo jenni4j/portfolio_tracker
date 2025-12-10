@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -13,10 +13,14 @@ import Performance from "./pages/Performance";
 
 function AppContent() {
   const { user } = useAuth();
+  const location = useLocation();
+
+  const hideNavbar = ["/login", "/register"].includes(location.pathname);
+
 
   return (
     <>
-      {user && <Navbar />}
+      {user && !hideNavbar && <Navbar />}
       <Routes>
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />

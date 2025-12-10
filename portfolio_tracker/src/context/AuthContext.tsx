@@ -1,9 +1,10 @@
 import { createContext, useContext, useState, useEffect } from "react";
+import { supabase } from "../lib/supabaseClient";
 
 interface AuthContextType {
   user: string | null;
-  login: (token: string, email: string) => void;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<any>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -12,19 +13,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<string | null>(null);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem("user");
-    if (savedUser) setUser(savedUser);
-  }, []);
+    supabase.auth.getSession().then(({ data }) => {
+      setUser(data.session?.user?.email ?? null);
+    });
+  
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_, session) => {
+        setUser(session?.user?.email ?? null);
+      }
+    );
+  
+    return () => listener.subscription.unsubscribe();
+  }, []);  
 
-  const login = (token: string, email: string) => {
-    localStorage.setItem("token", token);
-    localStorage.setItem("user", email);
-    setUser(email);
+  const login = async (email: string, password: string) => {
+    return supabase.auth.signInWithPassword({ email, password });
   };
 
-  const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
   };
 

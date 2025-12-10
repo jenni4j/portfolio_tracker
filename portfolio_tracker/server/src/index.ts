@@ -1,14 +1,10 @@
 import express from "express";
 import cors from "cors";
 import YahooFinance from "yahoo-finance2";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-
-const users: { email: string; passwordHash: string }[] = [];
-const JWT_SECRET = "supersecret123";
 
 const app = express();
 const yf = new YahooFinance();
+
 app.use(cors());
 app.use(express.json());
 
@@ -19,39 +15,6 @@ const hardcodedStocks = {
   AMZN: { initialPrice: 10, shares: 3, value: 552, returnPct: 12.88, pnl: 63 },
 };
 
-app.post("/api/register", async (req, res) => {
-  const { email, password } = req.body;
-
-  if (!email || !password)
-    return res.status(400).json({ error: "email and password required" });
-
-  const existing = users.find((u) => u.email === email);
-  if (existing)
-    return res.status(400).json({ error: "user already exists" });
-
-  const passwordHash = await bcrypt.hash(password, 10);
-
-  users.push({ email, passwordHash });
-
-  const token = jwt.sign({ email }, JWT_SECRET, { expiresIn: "7d" });
-
-  res.json({ token });
-});
-
-app.post("/api/login", async (req, res) => {
-  const { email, password } = req.body;
-
-  const user = users.find((u) => u.email === email);
-  if (!user) return res.status(400).json({ error: "invalid credentials" });
-
-  const valid = await bcrypt.compare(password, user.passwordHash);
-  if (!valid) return res.status(400).json({ error: "invalid credentials" });
-
-  const token = jwt.sign({ email }, JWT_SECRET, { expiresIn: "7d" });
-
-  res.json({ token });
-});
-
 app.get("/api/quotes", async (req, res) => {
   try {
     const tickers = req.query.tickers?.toString();
@@ -61,10 +24,12 @@ app.get("/api/quotes", async (req, res) => {
 
     const mapped = await Promise.all(
       symbols.map(async (ticker) => {
-        const summary = await yf.quoteSummary(ticker, { modules: ['assetProfile', 'price'] });
-        
+        const summary = await yf.quoteSummary(ticker, {
+          modules: ["assetProfile", "price"],
+        });
+
         const hardcoded = hardcodedStocks[ticker as keyof typeof hardcodedStocks] || {};
-    
+
         return {
           ticker,
           name: summary.price?.longName ?? ticker,
