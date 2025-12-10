@@ -47,7 +47,7 @@ export default function Register() {
           onChange={(e) => setPassword(e.target.value)}
         />
 
-        <button className="py-2 text-sm font-semibold border border-gray-300 rounded-md bg-white shadow-sm hover:bg-[#eef4ff] transition">
+        <button className="py-2 text-sm font-semibold border border-gray-300 rounded-md bg-white shadow-sm hover:bg-[#eef4ff] transition cursor-pointer">
           Save
         </button>
 
