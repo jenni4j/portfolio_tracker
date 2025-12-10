@@ -1,19 +1,22 @@
-import { useState, useEffect} from "react";
+import { useState, useEffect } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 import type { Stock } from "../types/Stock";
 
 interface PortfolioTableProps {
-  stocks: Stock[];
+  portfolio: {
+    id: number;
+    name: string;
+    stocks?: Stock[];
+  };
 }
 
-export default function PortfolioTable({ stocks }: PortfolioTableProps) {
+export default function PortfolioTable({ portfolio }: PortfolioTableProps) {
   const [openName, setOpenName] = useState<string | null>(null);
+  const stocks = portfolio.stocks || [];
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setOpenName(null);
-      }
+      if (e.key === "Escape") setOpenName(null);
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
@@ -21,7 +24,7 @@ export default function PortfolioTable({ stocks }: PortfolioTableProps) {
 
   return (
     <div className="w-full max-w-5xl mx-auto mt-10">
-      <h1 className="text-2xl font-bold mb-6 tracking-wide">Portfolio 1</h1>
+      <h2 className="text-2xl font-bold mb-4 tracking-wide">{portfolio.name}</h2>
 
       <table className="w-full table-fixed text-sm border-collapse shadow-lg">
         <thead className="bg-[#e9ecf1] text-left uppercase text-xs tracking-wider font-bold">
@@ -41,17 +44,13 @@ export default function PortfolioTable({ stocks }: PortfolioTableProps) {
           {stocks.map((s, i) => (
             <tr key={s.ticker} className={`${i % 2 === 0 ? "bg-white" : "bg-[#eef4ff]"}`}>
               <td className="p-3 font-semibold">{s.ticker}</td>
-              {/* Added company description under the company name as a click tooltip */}
               <td className="p-3 relative">
                 <span
                   className="underline cursor-pointer"
-                  onClick={() =>
-                    setOpenName(openName === s.name ? null : s.name)
-                  }
+                  onClick={() => setOpenName(openName === s.name ? null : s.name)}
                 >
                   {s.name}
                 </span>
-
                 {openName === s.name && (
                   <div className="absolute left-0 top-full mt-1 w-64 max-w-[20rem] p-3 text-sm text-black bg-white rounded shadow-lg z-10 break-words border border-gray-300">
                     {s.description}
@@ -62,10 +61,18 @@ export default function PortfolioTable({ stocks }: PortfolioTableProps) {
               <td className="p-3 text-center">{s.initialPrice}</td>
               <td className="p-3 text-center">{s.shares}</td>
               <td className="p-3 text-center">${s.value.toLocaleString()}</td>
-              <td className={`p-3 text-center font-bold ${s.returnPct >= 0 ? "text-green-600" : "text-red-600"}`}>
+              <td
+                className={`p-3 text-center font-bold ${
+                  s.returnPct >= 0 ? "text-green-600" : "text-red-600"
+                }`}
+              >
                 {s.returnPct.toFixed(2)}%
               </td>
-              <td className={`p-3 text-center font-bold ${s.pnl >= 0 ? "text-green-600" : "text-red-600"}`}>
+              <td
+                className={`p-3 text-center font-bold ${
+                  s.pnl >= 0 ? "text-green-600" : "text-red-600"
+                }`}
+              >
                 ${s.pnl.toLocaleString()}
               </td>
               <td className="p-3 text-center">
@@ -82,9 +89,7 @@ export default function PortfolioTable({ stocks }: PortfolioTableProps) {
           ))}
         </tbody>
         <div className="w-full flex justify-center mt-3">
-          <button
-            className="px-1 py-2 text-sm font-semibold border border-gray-300 rounded-md bg-white shadow-sm hover:bg-[#eef4ff] transition"
-          >
+          <button className="px-1 py-2 text-sm font-semibold border border-gray-300 rounded-md bg-white shadow-sm hover:bg-[#eef4ff] transition">
             + Add Entry
           </button>
         </div>
