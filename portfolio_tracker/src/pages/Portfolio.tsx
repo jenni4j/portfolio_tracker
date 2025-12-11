@@ -15,18 +15,64 @@ export default function Portfolio() {
 
   const fetchPortfolios = async () => {
     setLoading(true);
-    const user = supabase.auth.getUser();
-    const { data: userData } = await user;
+  
+    const { data: userData } = await supabase.auth.getUser();
     if (!userData?.user) return;
-
-    const { data, error } = await supabase
+  
+    const { data: portfolioData, error: portfolioError } = await supabase
       .from("portfolios")
-      .select("id, name, user_id")
-      .eq("user_id", userData.user.id)
-      .order("id", { ascending: true });
-
-    if (error) console.error(error);
-    else setPortfolios(data || []);
+      .select("id, name")
+      .eq("user_id", userData.user.id);
+  
+    if (portfolioError) {
+      console.error(portfolioError);
+      setLoading(false);
+      return;
+    }
+  
+    const { data: allStocks } = await supabase
+      .from("stocks")
+      .select("*") /* optimize query later */
+      .in("portfolio_id", portfolioData.map((p) => p.id));
+  
+    if (!allStocks) {
+      setPortfolios(portfolioData.map((p) => ({ ...p, stocks: [] })));
+      setLoading(false);
+      return;
+    }
+  
+    const allTickers = Array.from(new Set(allStocks.map((s) => s.ticker)));
+  
+    const res = await fetch(
+      `http://localhost:5001/api/quotes?tickers=${allTickers.join(",")}`
+    );
+    const yahooData = await res.json();
+  
+    const yahooMap = Object.fromEntries(yahooData.map((x: any) => [x.ticker, x]));
+  
+    const enrichedStocks = allStocks.map((s) => {
+      const y = yahooMap[s.ticker];
+      return {
+        ...s,
+        name: y?.name ?? "",
+        description: y?.description ?? "",
+        lastPrice: y?.lastPrice ?? 0,
+        initialPrice: s.initial_price,
+        value: (s.shares ?? 0) * (y?.lastPrice ?? 0),
+        returnPct:
+          ((y?.lastPrice ?? 0) - (s.initial_price ?? 0)) /
+          (s.initial_price ?? 1) *
+          100,
+        pnl: ((y?.lastPrice ?? 0) - (s.initial_price ?? 0)) * (s.shares ?? 0),
+      };
+    });
+  
+    const portfoliosWithStocks = portfolioData.map((p) => ({
+      ...p,
+      stocks: enrichedStocks.filter((s) => s.portfolio_id === p.id),
+    }));
+  
+    setPortfolios(portfoliosWithStocks);
     setLoading(false);
   };
 
@@ -48,10 +94,7 @@ export default function Portfolio() {
       .select()
       .single();
 
-    if (error) {
-      console.error(error);
-      return;
-    }
+    if (error) return console.error(error);
 
     setPortfolios((prev) => [...prev, data]);
   };
@@ -62,7 +105,7 @@ export default function Portfolio() {
         <h1 className="text-3xl font-bold">My Portfolios</h1>
         <button
           onClick={createPortfolio}
-          className="px-3 py-2 text-sm font-semibold border border-gray-300 rounded-md bg-white shadow-sm hover:bg-[#eef4ff] transition cursor-pointer"
+          className="px-3 py-2 text-sm font-semibold border border-gray-300 rounded-md bg-white shadow-sm hover:bg-[#eef4ff]"
         >
           + New Portfolio
         </button>
@@ -71,7 +114,11 @@ export default function Portfolio() {
       {loading && <p>Loading portfolios...</p>}
 
       {portfolios.map((p) => (
-        <PortfolioTable key={p.id} portfolio={p} />
+        <PortfolioTable
+          key={p.id}
+          portfolio={p}
+          refresh={fetchPortfolios}
+        />
       ))}
     </div>
   );

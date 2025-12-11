@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 import type { Stock } from "../types/Stock";
+import { supabase } from "../lib/supabaseClient";
+import EditStockModal from "./EditStockModal";
 
 interface PortfolioTableProps {
   portfolio: {
@@ -8,10 +10,13 @@ interface PortfolioTableProps {
     name: string;
     stocks?: Stock[];
   };
+  refresh: () => void;
 }
 
-export default function PortfolioTable({ portfolio }: PortfolioTableProps) {
+export default function PortfolioTable({ portfolio, refresh }: PortfolioTableProps) {
   const [openName, setOpenName] = useState<string | null>(null);
+  const [editingStock, setEditingStock] = useState<Stock | null>(null);
+
   const stocks = portfolio.stocks || [];
 
   useEffect(() => {
@@ -21,6 +26,36 @@ export default function PortfolioTable({ portfolio }: PortfolioTableProps) {
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, []);
+
+  const deleteStock = async (id: number) => {
+    if (!confirm("Delete this stock?")) return;
+
+    await supabase.from("stocks").delete().eq("id", id);
+    refresh();
+  };
+
+  const addStock = async () => {
+    const ticker = prompt("Ticker?");
+    const shares = Number(prompt("Shares?"));
+    const initialPrice = Number(prompt("Initial price?"));
+
+    if (!ticker || !shares || !initialPrice) return;
+
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData?.user) return;
+
+    await supabase.from("stocks").insert([
+      {
+        user_id: userData.user.id,
+        portfolio_id: portfolio.id,
+        ticker,
+        shares,
+        initial_price: initialPrice,
+      },
+    ]);
+
+    refresh();
+  };
 
   return (
     <div className="w-full max-w-5xl mx-auto mt-10">
@@ -40,10 +75,12 @@ export default function PortfolioTable({ portfolio }: PortfolioTableProps) {
             <th className="p-3 w-[60px] text-center"></th>
           </tr>
         </thead>
+
         <tbody>
           {stocks.map((s, i) => (
-            <tr key={s.ticker} className={`${i % 2 === 0 ? "bg-white" : "bg-[#eef4ff]"}`}>
+            <tr key={s.id} className={i % 2 === 0 ? "bg-white" : "bg-[#eef4ff]"}>
               <td className="p-3 font-semibold">{s.ticker}</td>
+
               <td className="p-3 relative">
                 <span
                   className="underline cursor-pointer"
@@ -51,16 +88,19 @@ export default function PortfolioTable({ portfolio }: PortfolioTableProps) {
                 >
                   {s.name}
                 </span>
+
                 {openName === s.name && (
-                  <div className="absolute left-0 top-full mt-1 w-64 max-w-[20rem] p-3 text-sm text-black bg-white rounded shadow-lg z-10 break-words border border-gray-300">
+                  <div className="absolute left-0 top-full mt-1 w-64 p-3 text-sm bg-white rounded shadow-lg z-10 border border-gray-300">
                     {s.description}
                   </div>
                 )}
               </td>
+
               <td className="p-3 text-center">{s.lastPrice}</td>
               <td className="p-3 text-center">{s.initialPrice}</td>
               <td className="p-3 text-center">{s.shares}</td>
               <td className="p-3 text-center">${s.value.toLocaleString()}</td>
+
               <td
                 className={`p-3 text-center font-bold ${
                   s.returnPct >= 0 ? "text-green-600" : "text-red-600"
@@ -68,6 +108,7 @@ export default function PortfolioTable({ portfolio }: PortfolioTableProps) {
               >
                 {s.returnPct.toFixed(2)}%
               </td>
+
               <td
                 className={`p-3 text-center font-bold ${
                   s.pnl >= 0 ? "text-green-600" : "text-red-600"
@@ -75,25 +116,39 @@ export default function PortfolioTable({ portfolio }: PortfolioTableProps) {
               >
                 ${s.pnl.toLocaleString()}
               </td>
+
               <td className="p-3 text-center">
                 <div className="flex justify-center gap-3">
-                  <button className="hover:scale-110 transition">
-                    <Pencil className="w-5 h-4 stroke-[1.75] text-black" />
+                  <button onClick={() => setEditingStock(s)} className="hover:scale-110 cursor-pointer">
+                    <Pencil className="w-5 h-4" />
                   </button>
-                  <button className="hover:scale-110 transition">
-                    <Trash2 className="w-5 h-4 stroke-[1.75] text-black" />
+
+                  <button onClick={() => deleteStock(s.id)} className="hover:scale-110 cursor-pointer">
+                    <Trash2 className="w-5 h-4" />
                   </button>
                 </div>
               </td>
             </tr>
           ))}
         </tbody>
-        <div className="w-full flex justify-center mt-3">
-          <button className="px-1 py-2 text-sm font-semibold border border-gray-300 rounded-md bg-white shadow-sm hover:bg-[#eef4ff] transition">
-            + Add Entry
-          </button>
-        </div>
       </table>
+
+      <div className="w-full flex justify-center mt-3">
+        <button
+          onClick={addStock}
+          className="px-1 py-2 text-sm font-semibold border border-gray-300 rounded-md bg-white shadow-sm hover:bg-[#eef4ff] cursor-pointer"
+        >
+          + Add Entry
+        </button>
+      </div>
+
+      {editingStock && (
+        <EditStockModal
+          stock={editingStock}
+          onClose={() => setEditingStock(null)}
+          onSaved={refresh}
+        />
+      )}
     </div>
   );
 }
