@@ -37,5 +37,4 @@ app.get("/api/quotes", async (req, res) => {
   }
 });
 
-const PORT = 5001;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+export default app;
