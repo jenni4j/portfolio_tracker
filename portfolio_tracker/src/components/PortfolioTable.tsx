@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, ChevronUp, ChevronDown } from "lucide-react";
 import type { Stock } from "../types/Stock";
 import { supabase } from "../lib/supabaseClient";
 import EditStockModal from "./EditStockModal";
@@ -18,6 +18,11 @@ export default function PortfolioTable({ portfolio, refresh }: PortfolioTablePro
   const [editingStock, setEditingStock] = useState<Stock | null>(null);
 
   const stocks = portfolio.stocks || [];
+  const [sortDesc, setSortDesc] = useState(true);
+
+  const sortedStocks = [...stocks].sort((a, b) =>
+    sortDesc ? b.returnPct - a.returnPct : a.returnPct - b.returnPct
+  ); 
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -35,7 +40,7 @@ export default function PortfolioTable({ portfolio, refresh }: PortfolioTablePro
   };
 
   const addStock = async () => {
-    const ticker = prompt("Ticker?");
+    const ticker = prompt("Ticker? If Canadian stock, add .TO after ticker");
     const shares = Number(prompt("Shares?"));
     const initialPrice = Number(prompt("Initial price?"));
 
@@ -70,14 +75,19 @@ export default function PortfolioTable({ portfolio, refresh }: PortfolioTablePro
             <th className="p-3 w-1/8 text-center">Initial Price</th>
             <th className="p-3 w-1/8 text-center">Shares</th>
             <th className="p-3 w-1/8 text-center">Value</th>
-            <th className="p-3 w-1/8 text-center">Return %</th>
+            <th className="p-3 w-1/8 text-center cursor-pointer" onClick={() => setSortDesc(!sortDesc)}>
+              <div className="flex items-center justify-center gap-1">
+                Return %
+                {sortDesc ? (<ChevronDown className="w-4 h-4" />) : (<ChevronUp className="w-4 h-4" />)}
+              </div>
+            </th>
             <th className="p-3 w-1/8 text-center">P/L</th>
             <th className="p-3 w-[60px] text-center"></th>
           </tr>
         </thead>
 
         <tbody>
-          {stocks.map((s, i) => (
+          {sortedStocks.map((s, i) => (
             <tr key={s.id} className={i % 2 === 0 ? "bg-white" : "bg-[#eef4ff]"}>
               <td className="p-3 font-semibold">{s.ticker}</td>
 
