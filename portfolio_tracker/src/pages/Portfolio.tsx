@@ -44,7 +44,7 @@ export default function Portfolio() {
     const allTickers = Array.from(new Set(allStocks.map((s) => s.ticker)));
   
     const res = await fetch(
-      `http://localhost:5001/api/quotes?tickers=${allTickers.join(",")}`
+      `/api/quotes?tickers=${allTickers.join(",")}`
     );
     const yahooData = await res.json();
   
