@@ -44,7 +44,7 @@ export default function Portfolio() {
     const allTickers = Array.from(new Set(allStocks.map((s) => s.ticker)));
   
     const res = await fetch(
-      `/api/quotes?tickers=${allTickers.join(",")}`
+      `https://portfolio-tracker-server-ten.vercel.app/api/quotes?tickers=${allTickers.join(",")}`
     );
     const yahooData = await res.json();
   
