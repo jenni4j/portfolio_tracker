@@ -20,6 +20,7 @@ export default function PortfolioTable({ portfolio, refresh }: PortfolioTablePro
   const [shares, setShares] = useState("");
   const [initialPrice, setInitialPrice] = useState("");
   const [editingStock, setEditingStock] = useState<Stock | null>(null);
+  const [selectedStock, setSelectedStock] = useState<{symbol: string; name: string;} | null>(null);
 
   const stocks = portfolio.stocks || [];
   const [sortDesc, setSortDesc] = useState(true);
@@ -43,7 +44,9 @@ export default function PortfolioTable({ portfolio, refresh }: PortfolioTablePro
     refresh();
   };
 
-  const handleAddStock = async (stock: { symbol: string; name: string }) => {
+  const saveNewStock = async () => {
+    if (!selectedStock) return;
+
     const parsedShares = parseFloat(shares);
     const parsedInitial = parseFloat(initialPrice);
 
@@ -59,17 +62,19 @@ export default function PortfolioTable({ portfolio, refresh }: PortfolioTablePro
       {
         user_id: userData.user.id,
         portfolio_id: portfolio.id,
-        ticker: stock.symbol,
+        ticker: selectedStock.symbol,
         shares: parsedShares,
         initial_price: parsedInitial,
       },
     ]);
 
+    setSelectedStock(null);
     setShares("");
     setInitialPrice("");
     setAdding(false);
     refresh();
   };
+
 
 
   return (
@@ -167,7 +172,13 @@ export default function PortfolioTable({ portfolio, refresh }: PortfolioTablePro
           <div className="flex items-center gap-3">
 
             <div className="w-64">
-              <StockSearch onSelect={handleAddStock} />
+              {!selectedStock ? (
+                <StockSearch onSelect={(stock) => setSelectedStock(stock)} />
+              ) : (
+                <div className="border rounded px-3 py-2 bg-[#eef4ff] text-sm">
+                  {selectedStock.symbol} — {selectedStock.name}
+                </div>
+              )}
             </div>
 
             <input
@@ -187,7 +198,17 @@ export default function PortfolioTable({ portfolio, refresh }: PortfolioTablePro
             />
 
             <button
-              onClick={() => setAdding(false)}
+              onClick={saveNewStock}
+              className="px-3 py-1 border rounded bg-white hover:bg-[#eef4ff] text-sm font-semibold"
+            >
+              Save
+            </button>
+
+            <button
+              onClick={() => {
+                setAdding(false);
+                setSelectedStock(null);
+              }}
               className="text-sm text-gray-500"
             >
               Cancel
@@ -195,7 +216,7 @@ export default function PortfolioTable({ portfolio, refresh }: PortfolioTablePro
           </div>
         )}
       </div>
-      
+
       {editingStock && (
         <EditStockModal
           stock={editingStock}
