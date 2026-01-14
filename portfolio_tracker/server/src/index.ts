@@ -37,4 +37,28 @@ app.get("/api/quotes", async (req, res) => {
   }
 });
 
+app.get("/api/search", async (req, res) => {
+  try {
+    const query = req.query.q?.toString();
+    if (!query) return res.json([]);
+
+    const results = await yf.search(query);
+
+    const stocks =
+      results.quotes
+        ?.filter(q => q.symbol && q.shortname)
+        .slice(0, 10)
+        .map(q => ({
+          symbol: q.symbol,
+          name: q.shortname,
+          exchange: q.exchange
+        })) ?? [];
+
+    res.json(stocks);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "search failed" });
+  }
+});
+
 export default app;
