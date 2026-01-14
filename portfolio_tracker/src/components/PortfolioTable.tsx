@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Pencil, Trash2, ChevronUp, ChevronDown } from "lucide-react";
 import type { Stock } from "../types/Stock";
+import StockSearch from "./StockSearch";
 import { supabase } from "../lib/supabaseClient";
 import EditStockModal from "./EditStockModal";
 
@@ -15,6 +16,9 @@ interface PortfolioTableProps {
 
 export default function PortfolioTable({ portfolio, refresh }: PortfolioTableProps) {
   const [openName, setOpenName] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [shares, setShares] = useState("");
+  const [initialPrice, setInitialPrice] = useState("");
   const [editingStock, setEditingStock] = useState<Stock | null>(null);
 
   const stocks = portfolio.stocks || [];
@@ -39,12 +43,14 @@ export default function PortfolioTable({ portfolio, refresh }: PortfolioTablePro
     refresh();
   };
 
-  const addStock = async () => {
-    const ticker = prompt("Ticker? If Canadian stock, add .TO after ticker");
-    const shares = Number(prompt("Shares?"));
-    const initialPrice = Number(prompt("Initial price?"));
+  const handleAddStock = async (stock: { symbol: string; name: string }) => {
+    const parsedShares = parseFloat(shares);
+    const parsedInitial = parseFloat(initialPrice);
 
-    if (!ticker || !shares || !initialPrice) return;
+    if (!parsedShares || !parsedInitial) {
+      alert("Enter valid numbers");
+      return;
+    }
 
     const { data: userData } = await supabase.auth.getUser();
     if (!userData?.user) return;
@@ -53,14 +59,18 @@ export default function PortfolioTable({ portfolio, refresh }: PortfolioTablePro
       {
         user_id: userData.user.id,
         portfolio_id: portfolio.id,
-        ticker,
-        shares,
-        initial_price: initialPrice,
+        ticker: stock.symbol,
+        shares: parsedShares,
+        initial_price: parsedInitial,
       },
     ]);
 
+    setShares("");
+    setInitialPrice("");
+    setAdding(false);
     refresh();
   };
+
 
   return (
     <div className="w-full max-w-5xl mx-auto mt-10">
@@ -143,15 +153,49 @@ export default function PortfolioTable({ portfolio, refresh }: PortfolioTablePro
         </tbody>
       </table>
 
-      <div className="w-full flex justify-center mt-3">
-        <button
-          onClick={addStock}
-          className="px-1 py-2 text-sm font-semibold border border-gray-300 rounded-md bg-white shadow-sm hover:bg-[#eef4ff] cursor-pointer"
-        >
-          + Add Entry
-        </button>
-      </div>
+      <div className="w-full flex flex-col items-center mt-3 gap-3">
+        {!adding && (
+          <button
+            onClick={() => setAdding(true)}
+            className="px-3 py-2 text-sm font-semibold border border-gray-300 rounded-md bg-white shadow-sm hover:bg-[#eef4ff]"
+          >
+            + Add Entry
+          </button>
+        )}
 
+        {adding && (
+          <div className="flex items-center gap-3">
+
+            <div className="w-64">
+              <StockSearch onSelect={handleAddStock} />
+            </div>
+
+            <input
+              type="number"
+              placeholder="Shares"
+              value={shares}
+              onChange={(e) => setShares(e.target.value)}
+              className="border px-2 py-1 rounded w-24"
+            />
+
+            <input
+              type="number"
+              placeholder="Initial Price"
+              value={initialPrice}
+              onChange={(e) => setInitialPrice(e.target.value)}
+              className="border px-2 py-1 rounded w-28"
+            />
+
+            <button
+              onClick={() => setAdding(false)}
+              className="text-sm text-gray-500"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
+      </div>
+      
       {editingStock && (
         <EditStockModal
           stock={editingStock}
