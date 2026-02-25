@@ -50,14 +50,12 @@ app.get("/api/history", async (req, res) => {
       const period1 = new Date(now);
       period1.setDate(now.getDate() - 1);
       const result = await yf.chart(ticker, { interval: "5m", period1, period2: now });
-      const timestamps = result.timestamp ?? [];
-      const closes = result.indicators?.quote?.[0]?.close ?? [];
-      const data = timestamps
-        .map((ts, i) => ({
-          date: new Date(ts * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-          close: closes[i] ?? null,
-        }))
-        .filter((d) => d.close !== null);
+      const data = result.quotes
+        .filter((q) => q.close != null)
+        .map((q) => ({
+          date: q.date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          close: q.close as number,
+        }));
       return res.json(data);
     }
 
