@@ -91,6 +91,44 @@ app.get("/api/history", async (req, res) => {
   }
 });
 
+app.get("/api/metrics", async (req, res) => {
+  try {
+    const ticker = req.query.ticker?.toString();
+    if (!ticker) return res.status(400).json({ error: "ticker required" });
+
+    const summary = await yf.quoteSummary(ticker, {
+      modules: ["summaryDetail", "defaultKeyStatistics", "financialData", "price"],
+    });
+
+    const sd = summary.summaryDetail;
+    const ks = summary.defaultKeyStatistics;
+    const fd = summary.financialData;
+    const pr = summary.price;
+
+    res.json({
+      marketCap: pr?.marketCap ?? sd?.marketCap ?? null,
+      trailingPE: sd?.trailingPE ?? null,
+      forwardPE: sd?.forwardPE ?? null,
+      priceToBook: ks?.priceToBook ?? null,
+      evToEbitda: ks?.enterpriseToEbitda ?? null,
+      eps: ks?.trailingEps ?? null,
+      dividendYield: sd?.dividendYield ?? null,
+      beta: sd?.beta ?? null,
+      fiftyTwoWeekHigh: sd?.fiftyTwoWeekHigh ?? null,
+      fiftyTwoWeekLow: sd?.fiftyTwoWeekLow ?? null,
+      avgVolume: sd?.averageVolume ?? null,
+      shortRatio: ks?.shortRatio ?? null,
+      revenue: fd?.totalRevenue ?? null,
+      profitMargin: fd?.profitMargins ?? null,
+      returnOnEquity: fd?.returnOnEquity ?? null,
+      debtToEquity: fd?.debtToEquity ?? null,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "failed to fetch metrics" });
+  }
+});
+
 app.get("/api/search", async (req, res) => {
   try {
     const query = req.query.q?.toString();

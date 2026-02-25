@@ -17,6 +17,25 @@ interface DataPoint {
   close: number;
 }
 
+interface Metrics {
+  marketCap: number | null;
+  trailingPE: number | null;
+  forwardPE: number | null;
+  priceToBook: number | null;
+  evToEbitda: number | null;
+  eps: number | null;
+  dividendYield: number | null;
+  beta: number | null;
+  fiftyTwoWeekHigh: number | null;
+  fiftyTwoWeekLow: number | null;
+  avgVolume: number | null;
+  shortRatio: number | null;
+  revenue: number | null;
+  profitMargin: number | null;
+  returnOnEquity: number | null;
+  debtToEquity: number | null;
+}
+
 const PERIODS: { label: string; value: Period }[] = [
   { label: "1D", value: "1d" },
   { label: "1M", value: "1m" },
@@ -25,30 +44,65 @@ const PERIODS: { label: string; value: Period }[] = [
   { label: "5Y", value: "5y" },
 ];
 
+const BASE_URL = "https://portfolio-tracker-server-ten.vercel.app";
+
+function fmtLarge(n: number | null): string {
+  if (n == null) return "—";
+  if (Math.abs(n) >= 1e12) return `$${(n / 1e12).toFixed(2)}T`;
+  if (Math.abs(n) >= 1e9) return `$${(n / 1e9).toFixed(2)}B`;
+  if (Math.abs(n) >= 1e6) return `$${(n / 1e6).toFixed(2)}M`;
+  return `$${n.toLocaleString()}`;
+}
+
+function fmtPct(n: number | null): string {
+  if (n == null) return "—";
+  return `${(n * 100).toFixed(2)}%`;
+}
+
+function fmtNum(n: number | null, decimals = 2): string {
+  if (n == null) return "—";
+  return n.toFixed(decimals);
+}
+
+function fmtVol(n: number | null): string {
+  if (n == null) return "—";
+  if (n >= 1e6) return `${(n / 1e6).toFixed(1)}M`;
+  if (n >= 1e3) return `${(n / 1e3).toFixed(0)}K`;
+  return n.toLocaleString();
+}
+
 export default function Charts() {
   const [selectedTicker, setSelectedTicker] = useState<{ symbol: string; name: string } | null>(null);
   const [period, setPeriod] = useState<Period>("1m");
   const [chartData, setChartData] = useState<DataPoint[]>([]);
   const [loading, setLoading] = useState(false);
+  const [metrics, setMetrics] = useState<Metrics | null>(null);
+  const [metricsLoading, setMetricsLoading] = useState(false);
 
   const fetchHistory = async (ticker: string, p: Period) => {
     setLoading(true);
     try {
-      const res = await fetch(
-        `https://portfolio-tracker-server-ten.vercel.app/api/history?ticker=${ticker}&period=${p}`
-      );
-      if (!res.ok) {
-        console.error(`History API returned ${res.status}`);
-        setChartData([]);
-        return;
-      }
-      const data = await res.json();
-      setChartData(data);
-    } catch (err) {
-      console.error(err);
+      const res = await fetch(`${BASE_URL}/api/history?ticker=${ticker}&period=${p}`);
+      if (!res.ok) { setChartData([]); return; }
+      setChartData(await res.json());
+    } catch {
       setChartData([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchMetrics = async (ticker: string) => {
+    setMetricsLoading(true);
+    setMetrics(null);
+    try {
+      const res = await fetch(`${BASE_URL}/api/metrics?ticker=${ticker}`);
+      if (!res.ok) return;
+      setMetrics(await res.json());
+    } catch {
+      // metrics are optional — fail silently
+    } finally {
+      setMetricsLoading(false);
     }
   };
 
@@ -58,10 +112,47 @@ export default function Charts() {
     }
   }, [selectedTicker, period]);
 
+  useEffect(() => {
+    if (selectedTicker) {
+      fetchMetrics(selectedTicker.symbol);
+    } else {
+      setMetrics(null);
+    }
+  }, [selectedTicker]);
+
   const minClose = chartData.length ? Math.min(...chartData.map((d) => d.close)) : 0;
   const maxClose = chartData.length ? Math.max(...chartData.map((d) => d.close)) : 0;
   const padding = (maxClose - minClose) * 0.1 || 1;
   const isUp = chartData.length >= 2 && chartData[chartData.length - 1].close >= chartData[0].close;
+
+  const metricRows: { label: string; value: string }[][] = metrics
+    ? [
+        [
+          { label: "Market Cap", value: fmtLarge(metrics.marketCap) },
+          { label: "P/E (TTM)", value: fmtNum(metrics.trailingPE) },
+          { label: "Forward P/E", value: fmtNum(metrics.forwardPE) },
+          { label: "EPS (TTM)", value: metrics.eps != null ? `$${fmtNum(metrics.eps)}` : "—" },
+        ],
+        [
+          { label: "Price / Book", value: fmtNum(metrics.priceToBook) },
+          { label: "EV / EBITDA", value: fmtNum(metrics.evToEbitda) },
+          { label: "Revenue (TTM)", value: fmtLarge(metrics.revenue) },
+          { label: "Profit Margin", value: fmtPct(metrics.profitMargin) },
+        ],
+        [
+          { label: "Return on Equity", value: fmtPct(metrics.returnOnEquity) },
+          { label: "Debt / Equity", value: fmtNum(metrics.debtToEquity) },
+          { label: "Dividend Yield", value: fmtPct(metrics.dividendYield) },
+          { label: "Beta", value: fmtNum(metrics.beta) },
+        ],
+        [
+          { label: "52-Week High", value: metrics.fiftyTwoWeekHigh != null ? `$${fmtNum(metrics.fiftyTwoWeekHigh)}` : "—" },
+          { label: "52-Week Low", value: metrics.fiftyTwoWeekLow != null ? `$${fmtNum(metrics.fiftyTwoWeekLow)}` : "—" },
+          { label: "Avg Volume", value: fmtVol(metrics.avgVolume) },
+          { label: "Short Ratio", value: fmtNum(metrics.shortRatio) },
+        ],
+      ]
+    : [];
 
   return (
     <div className="max-w-5xl mx-auto mt-10">
@@ -152,6 +243,30 @@ export default function Charts() {
 
       {selectedTicker && !loading && chartData.length === 0 && (
         <p className="text-gray-500 mt-10 text-center">No data available for this period.</p>
+      )}
+
+      {selectedTicker && (
+        <div className="mt-6">
+          <h2 className="text-lg font-bold mb-3">Key Statistics</h2>
+          {metricsLoading && <p className="text-gray-500 text-sm">Loading metrics...</p>}
+          {!metricsLoading && metrics && (
+            <div className="border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+              {metricRows.map((row, ri) => (
+                <div
+                  key={ri}
+                  className={`grid grid-cols-4 divide-x divide-gray-200 ${ri % 2 === 0 ? "bg-white" : "bg-[#eef4ff]"} ${ri > 0 ? "border-t border-gray-200" : ""}`}
+                >
+                  {row.map((cell) => (
+                    <div key={cell.label} className="px-4 py-3">
+                      <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">{cell.label}</div>
+                      <div className="text-sm font-semibold">{cell.value}</div>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
