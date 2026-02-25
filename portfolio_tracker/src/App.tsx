@@ -9,7 +9,6 @@ import Home from "./pages/Home";
 import Portfolio from "./pages/Portfolio";
 import Charts from "./pages/Chart";
 import Watchlists from "./pages/Watchlist";
-import Performance from "./pages/Performance";
 
 function AppContent() {
   const { user } = useAuth();
@@ -29,7 +28,6 @@ function AppContent() {
         <Route path="/portfolio" element={<ProtectedRoute><Portfolio /></ProtectedRoute>} />
         <Route path="/charts" element={<ProtectedRoute><Charts /></ProtectedRoute>} />
         <Route path="/watchlists" element={<ProtectedRoute><Watchlists /></ProtectedRoute>} />
-        <Route path="/performance" element={<ProtectedRoute><Performance /></ProtectedRoute>} />
       </Routes>
     </>
   );
