@@ -47,7 +47,9 @@ app.get("/api/history", async (req, res) => {
     const now = new Date();
 
     if (period === "1d") {
-      const result = await yf.chart(ticker, { interval: "5m", range: "1d" });
+      const period1 = new Date(now);
+      period1.setDate(now.getDate() - 1);
+      const result = await yf.chart(ticker, { interval: "5m", period1, period2: now });
       const timestamps = result.timestamp ?? [];
       const closes = result.indicators?.quote?.[0]?.close ?? [];
       const data = timestamps
