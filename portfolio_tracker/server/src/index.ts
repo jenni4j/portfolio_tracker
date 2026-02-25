@@ -45,55 +45,44 @@ app.get("/api/history", async (req, res) => {
     if (!ticker) return res.status(400).json({ error: "ticker required" });
 
     const now = new Date();
-
-    if (period === "1d") {
-      const period1 = new Date(now);
-      period1.setDate(now.getDate() - 1);
-      const result = await yf.chart(ticker, { interval: "5m", period1, period2: now });
-      const data = result.quotes
-        .filter((q) => q.close != null)
-        .map((q) => ({
-          date: q.date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-          close: q.close as number,
-        }));
-      return res.json(data);
-    }
-
-    let period1: Date;
-    let interval: "1d" | "1wk" | "1mo";
+    const period1 = new Date(now);
+    let interval: "5m" | "1d" | "1wk" | "1mo";
+    let dateFormatter: (d: Date) => string;
 
     switch (period) {
-      case "1m":
-        period1 = new Date(now);
-        period1.setMonth(now.getMonth() - 1);
-        interval = "1d";
+      case "1d":
+        period1.setDate(now.getDate() - 1);
+        interval = "5m";
+        dateFormatter = (d) => d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
         break;
       case "6m":
-        period1 = new Date(now);
         period1.setMonth(now.getMonth() - 6);
         interval = "1d";
+        dateFormatter = (d) => d.toISOString().slice(0, 10);
         break;
       case "1y":
-        period1 = new Date(now);
         period1.setFullYear(now.getFullYear() - 1);
         interval = "1wk";
+        dateFormatter = (d) => d.toISOString().slice(0, 10);
         break;
       case "5y":
-        period1 = new Date(now);
         period1.setFullYear(now.getFullYear() - 5);
         interval = "1mo";
+        dateFormatter = (d) => d.toISOString().slice(0, 10);
         break;
-      default:
-        period1 = new Date(now);
+      default: // 1m
         period1.setMonth(now.getMonth() - 1);
         interval = "1d";
+        dateFormatter = (d) => d.toISOString().slice(0, 10);
     }
 
-    const result = await yf.historical(ticker, { period1, interval });
-    const data = result.map((r) => ({
-      date: r.date.toISOString().split("T")[0],
-      close: r.adjClose ?? r.close ?? 0,
-    }));
+    const result = await yf.chart(ticker, { interval, period1, period2: now });
+    const data = result.quotes
+      .filter((q) => q.close != null)
+      .map((q) => ({
+        date: dateFormatter(q.date),
+        close: q.close as number,
+      }));
 
     res.json(data);
   } catch (err) {
