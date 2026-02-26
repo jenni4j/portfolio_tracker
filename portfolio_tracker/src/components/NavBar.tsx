@@ -9,7 +9,7 @@ export default function Navbar() {
     { label: "Home", path: "/" },
     { label: "Portfolios", path: "/portfolio" },
     { label: "Charts", path: "/charts" },
-    { label: "Watchlists", path: "/watchlists" },
+    { label: "Watchlist", path: "/watchlist" },
   ];
 
   const handleLogout = () => {

@@ -8,7 +8,7 @@ import Register from "./pages/Register";
 import Home from "./pages/Home";
 import Portfolio from "./pages/Portfolio";
 import Charts from "./pages/Chart";
-import Watchlists from "./pages/Watchlist";
+import Watchlist from "./pages/Watchlist";
 
 function AppContent() {
   const { user } = useAuth();
@@ -27,7 +27,7 @@ function AppContent() {
         <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
         <Route path="/portfolio" element={<ProtectedRoute><Portfolio /></ProtectedRoute>} />
         <Route path="/charts" element={<ProtectedRoute><Charts /></ProtectedRoute>} />
-        <Route path="/watchlists" element={<ProtectedRoute><Watchlists /></ProtectedRoute>} />
+        <Route path="/watchlist" element={<ProtectedRoute><Watchlist /></ProtectedRoute>} />
       </Routes>
     </>
   );

@@ -9,6 +9,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import StockSearch from "../components/StockSearch";
+import { supabase } from "../lib/supabaseClient";
 
 type Period = "1d" | "1m" | "6m" | "1y" | "5y";
 
@@ -78,6 +79,7 @@ export default function Charts() {
   const [loading, setLoading] = useState(false);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [metricsLoading, setMetricsLoading] = useState(false);
+  const [watchlistAdded, setWatchlistAdded] = useState(false);
 
   const fetchHistory = async (ticker: string, p: Period) => {
     setLoading(true);
@@ -105,6 +107,33 @@ export default function Charts() {
       setMetricsLoading(false);
     }
   };
+
+  const addToWatchlist = async () => {
+    if (!selectedTicker) return;
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData?.user) return;
+
+    const res = await fetch(`${BASE_URL}/api/quotes?tickers=${selectedTicker.symbol}`);
+    const quotes = await res.json();
+    const lastPrice: number = quotes[0]?.lastPrice ?? 0;
+    const d = new Date();
+    const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+    await supabase.from("watchlist").insert([{
+      user_id: userData.user.id,
+      ticker: selectedTicker.symbol,
+      name: selectedTicker.name,
+      price_at_entry: lastPrice,
+      date_added: today,
+    }]);
+
+    setWatchlistAdded(true);
+    setTimeout(() => setWatchlistAdded(false), 2000);
+  };
+
+  useEffect(() => {
+    setWatchlistAdded(false);
+  }, [selectedTicker]);
 
   useEffect(() => {
     if (selectedTicker) {
@@ -187,6 +216,19 @@ export default function Charts() {
           )}
         </div>
 
+        {selectedTicker && (
+          <button
+            onClick={addToWatchlist}
+            className={`px-3 py-1.5 text-sm font-semibold border rounded-md transition ${
+              watchlistAdded
+                ? "bg-green-50 border-green-300 text-green-700"
+                : "bg-white border-gray-300 hover:bg-[#eef4ff] text-gray-600"
+            }`}
+          >
+            {watchlistAdded ? "Added!" : "+ Watchlist"}
+          </button>
+        )}
+
         <div className="flex gap-1">
           {PERIODS.map((p) => (
             <button
@@ -262,25 +304,26 @@ export default function Charts() {
 
       {selectedTicker && (
         <div className="mt-6">
-          <h2 className="text-lg font-bold mb-3">Key Statistics</h2>
-          {metricsLoading && <p className="text-gray-500 text-sm">Loading metrics...</p>}
-          {!metricsLoading && metrics && (
-            <div className="border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-              {metricRows.map((row, ri) => (
-                <div
-                  key={ri}
-                  className={`grid grid-cols-4 divide-x divide-gray-200 ${ri % 2 === 0 ? "bg-white" : "bg-[#eef4ff]"} ${ri > 0 ? "border-t border-gray-200" : ""}`}
-                >
-                  {row.map((cell) => (
-                    <div key={cell.label} className="px-4 py-3">
-                      <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">{cell.label}</div>
-                      <div className="text-sm font-semibold">{cell.value}</div>
-                    </div>
-                  ))}
-                </div>
-              ))}
+          <div className="rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+            <div className="px-5 py-4 bg-gray-50 border-b border-gray-200">
+              <h2 className="text-base font-bold text-gray-800">Key Metrics</h2>
             </div>
-          )}
+            {metricsLoading && <p className="text-gray-500 text-sm px-5 py-6">Loading metrics...</p>}
+            {!metricsLoading && metrics && (
+              <div className="divide-y divide-gray-100">
+                {metricRows.map((row, ri) => (
+                  <div key={ri} className="grid grid-cols-4 divide-x divide-gray-100">
+                    {row.map((cell) => (
+                      <div key={cell.label} className="px-4 py-3 bg-white hover:bg-gray-50 transition-colors">
+                        <div className="text-xs text-gray-400 uppercase tracking-wide mb-1">{cell.label}</div>
+                        <div className="text-sm font-semibold text-gray-700">{cell.value}</div>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

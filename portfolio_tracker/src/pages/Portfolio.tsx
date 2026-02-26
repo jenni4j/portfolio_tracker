@@ -59,11 +59,11 @@ export default function Portfolio() {
         lastPrice: y?.lastPrice ?? 0,
         initialPrice: s.initial_price,
         value: (s.shares ?? 0) * (y?.lastPrice ?? 0),
+        pnl: ((y?.lastPrice ?? 0) - (s.initial_price ?? 0)) * (s.shares ?? 0),
         returnPct:
           ((y?.lastPrice ?? 0) - (s.initial_price ?? 0)) /
           (s.initial_price ?? 1) *
           100,
-        pnl: ((y?.lastPrice ?? 0) - (s.initial_price ?? 0)) * (s.shares ?? 0),
       };
     });
   
@@ -107,7 +107,7 @@ export default function Portfolio() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto mt-10">
+    <div className="max-w-5xl mx-auto mt-10 pb-16">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">My Portfolios</h1>
         <button

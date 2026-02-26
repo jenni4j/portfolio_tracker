@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Pencil, Trash2, ChevronUp, ChevronDown } from "lucide-react";
 import type { Stock } from "../types/Stock";
 import StockSearch from "./StockSearch";
@@ -16,58 +16,47 @@ interface PortfolioTableProps {
 }
 
 export default function PortfolioTable({ portfolio, refresh, onDelete }: PortfolioTableProps) {
-  const [openName, setOpenName] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [shares, setShares] = useState("");
   const [initialPrice, setInitialPrice] = useState("");
   const [editingStock, setEditingStock] = useState<Stock | null>(null);
-  const [selectedStock, setSelectedStock] = useState<{symbol: string; name: string;} | null>(null);
+  const [selectedStock, setSelectedStock] = useState<{ symbol: string; name: string } | null>(null);
 
   const stocks = portfolio.stocks || [];
+  const [sortField, setSortField] = useState<"returnPct" | "pnl">("returnPct");
   const [sortDesc, setSortDesc] = useState(true);
 
   const sortedStocks = [...stocks].sort((a, b) =>
-    sortDesc ? b.returnPct - a.returnPct : a.returnPct - b.returnPct
-  ); 
+    sortDesc ? b[sortField] - a[sortField] : a[sortField] - b[sortField]
+  );
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpenName(null);
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  const handleSort = (field: "returnPct" | "pnl") => {
+    if (sortField === field) setSortDesc(!sortDesc);
+    else { setSortField(field); setSortDesc(true); }
+  };
 
   const deleteStock = async (id: number) => {
     if (!confirm("Delete this stock?")) return;
-
     await supabase.from("stocks").delete().eq("id", id);
     refresh();
   };
 
   const saveNewStock = async () => {
     if (!selectedStock) return;
-
     const parsedShares = parseFloat(shares);
     const parsedInitial = parseFloat(initialPrice);
-
-    if (!parsedShares || !parsedInitial) {
-      alert("Enter valid numbers");
-      return;
-    }
+    if (!parsedShares || !parsedInitial) { alert("Enter valid numbers"); return; }
 
     const { data: userData } = await supabase.auth.getUser();
     if (!userData?.user) return;
 
-    await supabase.from("stocks").insert([
-      {
-        user_id: userData.user.id,
-        portfolio_id: portfolio.id,
-        ticker: selectedStock.symbol,
-        shares: parsedShares,
-        initial_price: parsedInitial,
-      },
-    ]);
+    await supabase.from("stocks").insert([{
+      user_id: userData.user.id,
+      portfolio_id: portfolio.id,
+      ticker: selectedStock.symbol,
+      shares: parsedShares,
+      initial_price: parsedInitial,
+    }]);
 
     setSelectedStock(null);
     setShares("");
@@ -76,86 +65,83 @@ export default function PortfolioTable({ portfolio, refresh, onDelete }: Portfol
     refresh();
   };
 
-
+  const fmt = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   return (
-    <div className="w-full max-w-5xl mx-auto mt-10">
-      <div className="flex items-center gap-3 mb-4">
-        <h2 className="text-2xl font-bold tracking-wide">{portfolio.name}</h2>
-        <button onClick={onDelete} className="hover:scale-110 cursor-pointer text-gray-400 hover:text-red-500" title="Delete portfolio">
-          <Trash2 className="w-5 h-5" />
+    <div className="w-full max-w-5xl mx-auto mt-8 rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+
+      {/* Card header */}
+      <div className="flex items-center justify-between px-5 py-4 bg-gray-50 border-b border-gray-200">
+        <h2 className="text-base font-bold tracking-wide text-gray-800">{portfolio.name}</h2>
+        <button
+          onClick={onDelete}
+          className="text-gray-400 hover:text-red-500 hover:scale-110 transition cursor-pointer"
+          title="Delete portfolio"
+        >
+          <Trash2 className="w-4 h-4" />
         </button>
       </div>
 
-      <table className="w-full table-fixed text-sm border-collapse shadow-lg">
-        <thead className="bg-[#e9ecf1] text-left uppercase text-xs tracking-wider font-bold">
+      <table className="w-full table-fixed text-sm">
+        <thead className="bg-[#e9ecf1] text-xs uppercase tracking-wider font-bold border-b border-gray-200">
           <tr>
-            <th className="p-3 w-1/8">Ticker</th>
-            <th className="p-3 w-1/8">Company</th>
-            <th className="p-3 w-1/8 text-center">Last Price</th>
-            <th className="p-3 w-1/8 text-center">Initial Price</th>
-            <th className="p-3 w-1/8 text-center">Shares</th>
-            <th className="p-3 w-1/8 text-center">Value</th>
-            <th className="p-3 w-1/8 text-center cursor-pointer" onClick={() => setSortDesc(!sortDesc)}>
-              <div className="flex items-center justify-center gap-1">
-                Return %
-                {sortDesc ? (<ChevronDown className="w-4 h-4" />) : (<ChevronUp className="w-4 h-4" />)}
+            <th className="px-4 py-3 text-left w-1/8">Ticker</th>
+            <th className="px-4 py-3 text-right w-1/8">Last Price</th>
+            <th className="px-4 py-3 text-right w-1/8">Entry Price</th>
+            <th className="px-4 py-3 text-right w-1/8">Shares</th>
+            <th className="px-4 py-3 text-right w-1/8">Value</th>
+            <th className="px-4 py-3 text-right w-1/8 cursor-pointer" onClick={() => handleSort("pnl")}>
+              <div className="flex items-center justify-end gap-1">
+                P/L
+                {sortField === "pnl"
+                  ? (sortDesc ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />)
+                  : <ChevronDown className="w-4 h-4 opacity-25" />}
               </div>
             </th>
-            <th className="p-3 w-1/8 text-center">P/L</th>
-            <th className="p-3 w-[60px] text-center"></th>
+            <th className="px-4 py-3 text-right w-1/8 cursor-pointer" onClick={() => handleSort("returnPct")}>
+              <div className="flex items-center justify-end gap-1">
+                Return %
+                {sortField === "returnPct"
+                  ? (sortDesc ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />)
+                  : <ChevronDown className="w-4 h-4 opacity-25" />}
+              </div>
+            </th>
+            <th className="px-4 py-3 w-[56px]"></th>
           </tr>
         </thead>
 
-        <tbody>
-          {sortedStocks.map((s, i) => (
-            <tr key={s.id} className={i % 2 === 0 ? "bg-white" : "bg-[#eef4ff]"}>
-              <td className="p-3 font-semibold">{s.ticker}</td>
-
-              <td className="p-3 relative">
-                <span
-                  className="underline cursor-pointer"
-                  onClick={() => setOpenName(openName === s.name ? null : s.name)}
-                >
-                  {s.name}
-                </span>
-
-                {openName === s.name && (
-                  <div className="absolute left-0 top-full mt-1 w-64 p-3 text-sm bg-white rounded shadow-lg z-10 border border-gray-300">
-                    {s.description}
+        <tbody className="divide-y divide-gray-100">
+          {sortedStocks.map((s) => (
+            <tr key={s.id} className="group/row bg-white hover:bg-gray-50 transition-colors">
+              <td className="px-4 py-3 font-semibold relative group/ticker">
+                {s.ticker}
+                {s.name && (
+                  <div className="absolute left-0 top-full mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded shadow-lg z-10 whitespace-nowrap hidden group-hover/ticker:block pointer-events-none">
+                    {s.name}
                   </div>
                 )}
               </td>
 
-              <td className="p-3 text-center">{s.lastPrice}</td>
-              <td className="p-3 text-center">{s.initialPrice}</td>
-              <td className="p-3 text-center">{s.shares}</td>
-              <td className="p-3 text-center">${s.value.toLocaleString()}</td>
+              <td className="px-4 py-3 text-right tabular-nums text-gray-700">${fmt(s.lastPrice)}</td>
+              <td className="px-4 py-3 text-right tabular-nums text-gray-500">${fmt(s.initialPrice)}</td>
+              <td className="px-4 py-3 text-right tabular-nums text-gray-700">{s.shares}</td>
+              <td className="px-4 py-3 text-right tabular-nums text-gray-700">${fmt(s.value)}</td>
 
-              <td
-                className={`p-3 text-center font-bold ${
-                  s.returnPct >= 0 ? "text-green-600" : "text-red-600"
-                }`}
-              >
-                {s.returnPct.toFixed(2)}%
+              <td className={`px-4 py-3 text-right tabular-nums ${s.pnl >= 0 ? "text-green-600" : "text-red-600"}`}>
+                {s.pnl >= 0 ? "+" : ""}${fmt(s.pnl)}
               </td>
 
-              <td
-                className={`p-3 text-center font-bold ${
-                  s.pnl >= 0 ? "text-green-600" : "text-red-600"
-                }`}
-              >
-                ${s.pnl.toLocaleString()}
+              <td className={`px-4 py-3 text-right tabular-nums ${s.returnPct >= 0 ? "text-green-600" : "text-red-600"}`}>
+                {s.returnPct >= 0 ? "+" : ""}{s.returnPct.toFixed(2)}%
               </td>
 
-              <td className="p-3 text-center">
-                <div className="flex justify-center gap-3">
-                  <button onClick={() => setEditingStock(s)} className="hover:scale-110 cursor-pointer">
-                    <Pencil className="w-5 h-4" />
+              <td className="px-4 py-3">
+                <div className="flex justify-center gap-2 opacity-0 group-hover/row:opacity-100 transition-opacity">
+                  <button onClick={() => setEditingStock(s)} className="cursor-pointer text-gray-400 hover:text-blue-500 hover:scale-110 transition">
+                    <Pencil className="w-4 h-4" />
                   </button>
-
-                  <button onClick={() => deleteStock(s.id)} className="hover:scale-110 cursor-pointer">
-                    <Trash2 className="w-5 h-4" />
+                  <button onClick={() => deleteStock(s.id)} className="cursor-pointer text-gray-400 hover:text-red-500 hover:scale-110 transition">
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </td>
@@ -164,19 +150,19 @@ export default function PortfolioTable({ portfolio, refresh, onDelete }: Portfol
         </tbody>
       </table>
 
-      <div className="w-full flex flex-col items-center mt-3 gap-3">
+      {/* Card footer — add entry */}
+      <div className="border-t border-gray-200 px-4 py-3 bg-gray-50 flex flex-col items-center gap-3">
         {!adding && (
           <button
             onClick={() => setAdding(true)}
-            className="px-3 py-2 text-sm font-semibold border border-gray-300 rounded-md bg-white shadow-sm hover:bg-[#eef4ff]"
+            className="text-xs text-gray-400 hover:text-gray-600 transition"
           >
-            + Add Entry
+            + Add
           </button>
         )}
 
         {adding && (
           <div className="flex items-center gap-3">
-
             <div className="w-64">
               {!selectedStock ? (
                 <StockSearch onSelect={(stock) => setSelectedStock(stock)} />
@@ -192,7 +178,7 @@ export default function PortfolioTable({ portfolio, refresh, onDelete }: Portfol
               placeholder="Shares"
               value={shares}
               onChange={(e) => setShares(e.target.value)}
-              className="border px-2 py-1 rounded w-24"
+              className="border px-2 py-1.5 rounded w-24 text-sm"
             />
 
             <input
@@ -200,22 +186,19 @@ export default function PortfolioTable({ portfolio, refresh, onDelete }: Portfol
               placeholder="Initial Price"
               value={initialPrice}
               onChange={(e) => setInitialPrice(e.target.value)}
-              className="border px-2 py-1 rounded w-28"
+              className="border px-2 py-1.5 rounded w-28 text-sm"
             />
 
             <button
               onClick={saveNewStock}
-              className="px-3 py-1 border rounded bg-white hover:bg-[#eef4ff] text-sm font-semibold"
+              className="px-3 py-1.5 border rounded bg-white hover:bg-[#eef4ff] text-sm font-semibold transition"
             >
               Save
             </button>
 
             <button
-              onClick={() => {
-                setAdding(false);
-                setSelectedStock(null);
-              }}
-              className="text-sm text-gray-500"
+              onClick={() => { setAdding(false); setSelectedStock(null); }}
+              className="text-sm text-gray-500 hover:text-gray-700"
             >
               Cancel
             </button>
