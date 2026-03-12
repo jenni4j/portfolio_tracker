@@ -97,7 +97,7 @@ export default function Watchlist() {
       {loading && <p className="text-gray-500">Loading watchlist...</p>}
 
       {!loading && (
-        <div className="rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+        <div className="rounded-xl border border-gray-200 shadow-sm">
           {entries.length === 0 && !adding && (
             <p className="text-gray-500 py-10 text-center text-sm">
               Your watchlist is empty. Add a stock to get started.

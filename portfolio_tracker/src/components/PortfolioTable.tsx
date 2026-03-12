@@ -68,7 +68,7 @@ export default function PortfolioTable({ portfolio, refresh, onDelete }: Portfol
   const fmt = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   return (
-    <div className="w-full max-w-5xl mx-auto mt-8 rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+    <div className="w-full max-w-5xl mx-auto mt-8 rounded-xl border border-gray-200 shadow-sm">
 
       {/* Card header */}
       <div className="flex items-center justify-between px-5 py-4 bg-gray-50 border-b border-gray-200">
