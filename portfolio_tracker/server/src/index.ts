@@ -134,13 +134,13 @@ app.get("/api/search", async (req, res) => {
     const query = req.query.q?.toString();
     if (!query) return res.json([]);
 
-    const results = await yf.search(query);
+    const results = await yf.search(query, {}, { validateResult: false }) as any;
 
     const stocks =
       results.quotes
-        ?.filter(q => q.symbol && q.shortname)
+        ?.filter((q: any) => q.symbol && q.shortname)
         .slice(0, 10)
-        .map(q => ({
+        .map((q: any) => ({
           symbol: q.symbol,
           name: q.shortname,
           exchange: q.exchange
