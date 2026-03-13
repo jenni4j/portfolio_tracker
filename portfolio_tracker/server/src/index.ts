@@ -1,9 +1,12 @@
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import YahooFinance from "yahoo-finance2";
+import Anthropic from "@anthropic-ai/sdk";
 
 const app = express();
 const yf = new YahooFinance();
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 app.use(cors());
 app.use(express.json());
@@ -150,6 +153,30 @@ app.get("/api/search", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "search failed" });
+  }
+});
+
+app.post("/api/agent", async (req, res) => {
+  try {
+    const { messages } = req.body as {
+      messages: { role: "user" | "assistant"; content: string }[];
+    };
+
+    if (!messages?.length) return res.status(400).json({ error: "messages required" });
+
+    const response = await anthropic.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 1024,
+      system: "You are an intelligent investing assistant. You help users understand their portfolio, research stocks, and make informed decisions. Be concise and direct.",
+      messages,
+    });
+
+    const first = response.content[0];
+    const text = first?.type === "text" ? first.text : "";
+    res.json({ text });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "agent request failed" });
   }
 });
 
