@@ -170,6 +170,33 @@ const agentTools: Anthropic.Tool[] = [
     description: "Get the user's watchlist with entry price, current price, and change % since added.",
     input_schema: { type: "object" as const, properties: {}, required: [] },
   },
+  {
+    name: "get_quote",
+    description: "Get the current price and basic info for a stock ticker.",
+    input_schema: {
+      type: "object" as const,
+      properties: { ticker: { type: "string", description: "Stock ticker symbol, e.g. AAPL" } },
+      required: ["ticker"],
+    },
+  },
+  {
+    name: "get_metrics",
+    description: "Get key financial metrics for a stock: P/E, EPS, market cap, 52-week range, beta, dividend yield, revenue, margins, and more.",
+    input_schema: {
+      type: "object" as const,
+      properties: { ticker: { type: "string", description: "Stock ticker symbol, e.g. AAPL" } },
+      required: ["ticker"],
+    },
+  },
+  {
+    name: "search_stocks",
+    description: "Search for stocks by company name or ticker. Returns matching symbols and names.",
+    input_schema: {
+      type: "object" as const,
+      properties: { query: { type: "string", description: "Company name or ticker to search for" } },
+      required: ["query"],
+    },
+  },
 ];
 
 async function fetchQuoteMap(tickers: string[]): Promise<Record<string, number>> {
@@ -255,6 +282,53 @@ async function toolGetWatchlist(accessToken: string) {
   };
 }
 
+async function toolGetQuote(ticker: string) {
+  const s = await yf.quoteSummary(ticker, { modules: ["price"] });
+  return {
+    ticker,
+    name: s.price?.longName ?? ticker,
+    currentPrice: s.price?.regularMarketPrice ?? 0,
+    change: s.price?.regularMarketChange ?? 0,
+    changePct: s.price?.regularMarketChangePercent ?? 0,
+  };
+}
+
+async function toolGetMetrics(ticker: string) {
+  const summary = await yf.quoteSummary(ticker, {
+    modules: ["summaryDetail", "defaultKeyStatistics", "financialData", "price"],
+  });
+  const sd = summary.summaryDetail;
+  const ks = summary.defaultKeyStatistics;
+  const fd = summary.financialData;
+  const pr = summary.price;
+  return {
+    ticker,
+    name: pr?.longName ?? ticker,
+    marketCap: pr?.marketCap ?? sd?.marketCap ?? null,
+    trailingPE: sd?.trailingPE ?? null,
+    forwardPE: sd?.forwardPE ?? null,
+    eps: ks?.trailingEps ?? null,
+    priceToBook: ks?.priceToBook ?? null,
+    beta: sd?.beta ?? null,
+    dividendYield: sd?.dividendYield ?? null,
+    fiftyTwoWeekHigh: sd?.fiftyTwoWeekHigh ?? null,
+    fiftyTwoWeekLow: sd?.fiftyTwoWeekLow ?? null,
+    revenue: fd?.totalRevenue ?? null,
+    profitMargin: fd?.profitMargins ?? null,
+    returnOnEquity: fd?.returnOnEquity ?? null,
+    debtToEquity: fd?.debtToEquity ?? null,
+  };
+}
+
+async function toolSearchStocks(query: string) {
+  const results = await yf.search(query, {}, { validateResult: false }) as any;
+  const matches = results.quotes
+    ?.filter((q: any) => q.symbol && q.shortname)
+    .slice(0, 8)
+    .map((q: any) => ({ ticker: q.symbol, name: q.shortname, exchange: q.exchange })) ?? [];
+  return { results: matches };
+}
+
 // --- Agent endpoint ---
 
 app.post("/api/agent", async (req, res) => {
@@ -287,6 +361,9 @@ app.post("/api/agent", async (req, res) => {
           try {
             if (block.name === "get_portfolio") result = await toolGetPortfolio(accessToken ?? "");
             else if (block.name === "get_watchlist") result = await toolGetWatchlist(accessToken ?? "");
+            else if (block.name === "get_quote") result = await toolGetQuote((block.input as any).ticker);
+            else if (block.name === "get_metrics") result = await toolGetMetrics((block.input as any).ticker);
+            else if (block.name === "search_stocks") result = await toolSearchStocks((block.input as any).query);
             else result = { error: "unknown tool" };
           } catch (e: any) {
             result = { error: e?.message ?? "tool error" };
