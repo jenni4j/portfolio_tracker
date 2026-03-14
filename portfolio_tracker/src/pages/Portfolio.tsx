@@ -78,6 +78,8 @@ export default function Portfolio() {
 
   useEffect(() => {
     fetchPortfolios();
+    window.addEventListener("benji:data-changed", fetchPortfolios);
+    return () => window.removeEventListener("benji:data-changed", fetchPortfolios);
   }, []);
 
   const deletePortfolio = async (id: number) => {

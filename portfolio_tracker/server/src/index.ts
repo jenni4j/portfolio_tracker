@@ -424,11 +424,13 @@ app.post("/api/agent", async (req, res) => {
 
     // Agentic loop — keep going while Claude wants to call tools
     let currentMessages = [...messages];
+    const toolsUsed: string[] = [];
     while (response.stop_reason === "tool_use") {
       const toolUseBlocks = response.content.filter((b): b is Anthropic.ToolUseBlock => b.type === "tool_use");
 
       const toolResults: Anthropic.ToolResultBlockParam[] = await Promise.all(
         toolUseBlocks.map(async (block) => {
+          toolsUsed.push(block.name);
           let result: unknown;
           try {
             if (block.name === "get_portfolio") result = await toolGetPortfolio(accessToken ?? "");
@@ -463,7 +465,7 @@ app.post("/api/agent", async (req, res) => {
 
     const first = response.content[0];
     const text = first?.type === "text" ? first.text : "";
-    res.json({ text });
+    res.json({ text, toolsUsed });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "agent request failed" });

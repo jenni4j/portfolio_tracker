@@ -54,7 +54,11 @@ export default function Watchlist() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchWatchlist(); }, []);
+  useEffect(() => {
+    fetchWatchlist();
+    window.addEventListener("benji:data-changed", fetchWatchlist);
+    return () => window.removeEventListener("benji:data-changed", fetchWatchlist);
+  }, []);
 
   const addToWatchlist = async (stock: { symbol: string; name: string }) => {
     const { data: userData } = await supabase.auth.getUser();
