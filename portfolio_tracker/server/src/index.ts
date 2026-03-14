@@ -197,6 +197,29 @@ const agentTools: Anthropic.Tool[] = [
       required: ["query"],
     },
   },
+  {
+    name: "add_to_watchlist",
+    description: "Add a stock to the user's watchlist at its current price.",
+    input_schema: {
+      type: "object" as const,
+      properties: { ticker: { type: "string", description: "Stock ticker symbol, e.g. ASML" } },
+      required: ["ticker"],
+    },
+  },
+  {
+    name: "add_to_portfolio",
+    description: "Add a stock holding to the user's portfolio. Call get_portfolio first if you need to know available portfolio names. If the user only has one portfolio, use that without asking.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        ticker: { type: "string", description: "Stock ticker symbol" },
+        portfolio_name: { type: "string", description: "Name of the portfolio to add to" },
+        shares: { type: "number", description: "Number of shares purchased" },
+        entry_price: { type: "number", description: "Price per share at time of purchase" },
+      },
+      required: ["ticker", "portfolio_name", "shares", "entry_price"],
+    },
+  },
 ];
 
 async function fetchQuoteMap(tickers: string[]): Promise<Record<string, number>> {
@@ -329,6 +352,55 @@ async function toolSearchStocks(query: string) {
   return { results: matches };
 }
 
+async function toolAddToWatchlist(accessToken: string, ticker: string) {
+  const sb = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!, {
+    global: { headers: { Authorization: `Bearer ${accessToken}` } },
+  });
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) return { success: false, error: "Not authenticated" };
+
+  const quote = await toolGetQuote(ticker.toUpperCase());
+  const d = new Date();
+  const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+  const { error } = await sb.from("watchlist").insert({
+    user_id: user.id,
+    ticker: ticker.toUpperCase(),
+    name: quote.name,
+    price_at_entry: quote.currentPrice,
+    date_added: today,
+  });
+
+  if (error) return { success: false, error: error.message };
+  return { success: true, ticker: ticker.toUpperCase(), addedAt: quote.currentPrice };
+}
+
+async function toolAddToPortfolio(accessToken: string, ticker: string, portfolioName: string, shares: number, entryPrice: number) {
+  const sb = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!, {
+    global: { headers: { Authorization: `Bearer ${accessToken}` } },
+  });
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) return { success: false, error: "Not authenticated" };
+
+  const { data: portfolios } = await sb.from("portfolios").select("id, name");
+  const portfolio = portfolios?.find((p: any) => p.name.toLowerCase() === portfolioName.toLowerCase()) ?? portfolios?.[0];
+  if (!portfolio) return { success: false, error: "No portfolio found. Ask the user to create one first." };
+
+  const quote = await toolGetQuote(ticker.toUpperCase());
+
+  const { error } = await sb.from("stocks").insert({
+    user_id: user.id,
+    portfolio_id: portfolio.id,
+    ticker: ticker.toUpperCase(),
+    name: quote.name,
+    shares,
+    initial_price: entryPrice,
+  });
+
+  if (error) return { success: false, error: error.message };
+  return { success: true, ticker: ticker.toUpperCase(), portfolio: portfolio.name, shares, entryPrice };
+}
+
 // --- Agent endpoint ---
 
 app.post("/api/agent", async (req, res) => {
@@ -364,6 +436,8 @@ app.post("/api/agent", async (req, res) => {
             else if (block.name === "get_quote") result = await toolGetQuote((block.input as any).ticker);
             else if (block.name === "get_metrics") result = await toolGetMetrics((block.input as any).ticker);
             else if (block.name === "search_stocks") result = await toolSearchStocks((block.input as any).query);
+            else if (block.name === "add_to_watchlist") result = await toolAddToWatchlist(accessToken ?? "", (block.input as any).ticker);
+            else if (block.name === "add_to_portfolio") result = await toolAddToPortfolio(accessToken ?? "", (block.input as any).ticker, (block.input as any).portfolio_name, (block.input as any).shares, (block.input as any).entry_price);
             else result = { error: "unknown tool" };
           } catch (e: any) {
             result = { error: e?.message ?? "tool error" };
