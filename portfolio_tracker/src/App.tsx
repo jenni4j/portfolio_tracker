@@ -5,6 +5,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Navbar from "./components/NavBar";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import Home from "./pages/Home";
 import Portfolio from "./pages/Portfolio";
 import Charts from "./pages/Chart";
@@ -15,7 +17,7 @@ function AppContent() {
   const { user } = useAuth();
   const location = useLocation();
 
-  const hideNavbar = ["/login", "/register"].includes(location.pathname);
+  const hideNavbar = ["/login", "/register", "/forgot-password", "/reset-password"].includes(location.pathname);
 
 
   return (
@@ -25,6 +27,8 @@ function AppContent() {
       <Routes>
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
         <Route path="/portfolio" element={<ProtectedRoute><Portfolio /></ProtectedRoute>} />

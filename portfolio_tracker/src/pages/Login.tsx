@@ -106,12 +106,17 @@ export default function Login() {
             </button>
           </form>
 
-          <p className="text-sm text-gray-500 mt-6 text-center">
-            Don't have an account?{" "}
-            <Link to="/register" className="text-gray-900 font-semibold underline underline-offset-2">
-              Create one
+          <div className="flex flex-col items-center gap-2 mt-6">
+            <p className="text-sm text-gray-500">
+              Don't have an account?{" "}
+              <Link to="/register" className="text-gray-900 font-semibold underline underline-offset-2">
+                Create one
+              </Link>
+            </p>
+            <Link to="/forgot-password" className="text-sm text-gray-400 hover:text-gray-600 transition">
+              Forgot password?
             </Link>
-          </p>
+          </div>
         </div>
       </div>
 
