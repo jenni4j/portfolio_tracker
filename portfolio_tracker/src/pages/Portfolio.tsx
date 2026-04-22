@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import PortfolioTable from "../components/PortfolioTable";
+import CsvUploadModal from "../components/CsvUploadModal";
 import type { Stock } from "../types/Stock";
 import { supabase } from "../lib/supabaseClient";
 
@@ -12,6 +13,7 @@ interface Portfolio {
 export default function Portfolio() {
   const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showCsvModal, setShowCsvModal] = useState(false);
 
   const fetchPortfolios = async () => {
     setLoading(true);
@@ -117,13 +119,29 @@ export default function Portfolio() {
     <div className="max-w-5xl mx-auto mt-10 pb-16">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">My Portfolios</h1>
-        <button
-          onClick={createPortfolio}
-          className="px-3 py-2 text-sm font-semibold border border-gray-300 rounded-md bg-white shadow-sm hover:bg-[#eef4ff]"
-        >
-          + New Portfolio
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowCsvModal(true)}
+            className="px-3 py-2 text-sm font-semibold border border-gray-300 rounded-md bg-white shadow-sm hover:bg-[#eef4ff]"
+          >
+            Upload Holdings
+          </button>
+          <button
+            onClick={createPortfolio}
+            className="px-3 py-2 text-sm font-semibold border border-gray-300 rounded-md bg-white shadow-sm hover:bg-[#eef4ff]"
+          >
+            + New Portfolio
+          </button>
+        </div>
       </div>
+
+      {showCsvModal && (
+        <CsvUploadModal
+          portfolios={portfolios.map((p) => ({ id: p.id, name: p.name }))}
+          onClose={() => setShowCsvModal(false)}
+          onDone={fetchPortfolios}
+        />
+      )}
 
       {loading && <p>Loading portfolios...</p>}
 
