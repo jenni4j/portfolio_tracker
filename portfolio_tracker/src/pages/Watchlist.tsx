@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Trash2 } from "lucide-react";
+import { Trash2, ChevronUp, ChevronDown } from "lucide-react";
 import StockSearch from "../components/StockSearch";
 import { supabase } from "../lib/supabaseClient";
 
@@ -16,6 +16,7 @@ export default function Watchlist() {
   const [entries, setEntries] = useState<WatchlistEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [sortDesc, setSortDesc] = useState(true);
 
   const fetchWatchlist = async () => {
     setLoading(true);
@@ -120,19 +121,30 @@ export default function Watchlist() {
                   <th className="px-4 py-3 text-left w-1/6">Ticker</th>
                   <th className="px-4 py-3 text-right w-1/6">Entry Price</th>
                   <th className="px-4 py-3 text-right w-1/6">Current Price</th>
-                  <th className="px-4 py-3 text-right w-1/6">Change %</th>
+                  <th className="px-4 py-3 text-right w-1/6 cursor-pointer" onClick={() => setSortDesc((d) => !d)}>
+                    <div className="flex items-center justify-end gap-1">
+                      Change %
+                      {sortDesc ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+                    </div>
+                  </th>
                   <th className="px-4 py-3 text-right w-1/6">Date Added</th>
                   <th className="px-4 py-3 w-[56px]"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {entries.map((e) => {
-                  const changePct =
-                    e.currentPrice !== undefined
+                {[...entries]
+                  .map((e) => ({
+                    ...e,
+                    changePct: e.currentPrice !== undefined
                       ? ((e.currentPrice - e.price_at_entry) / e.price_at_entry) * 100
-                      : null;
-
-                  return (
+                      : null,
+                  }))
+                  .sort((a, b) => {
+                    if (a.changePct === null) return 1;
+                    if (b.changePct === null) return -1;
+                    return sortDesc ? b.changePct - a.changePct : a.changePct - b.changePct;
+                  })
+                  .map((e) => (
                     <tr key={e.id} className="group/row bg-white hover:bg-gray-50 transition-colors">
                       <td className="px-4 py-3 font-semibold relative group/ticker">
                         {e.ticker}
@@ -149,9 +161,9 @@ export default function Watchlist() {
                         {e.currentPrice !== undefined ? `$${e.currentPrice.toFixed(2)}` : "—"}
                       </td>
                       <td className={`px-4 py-3 text-right tabular-nums ${
-                        changePct === null ? "text-gray-400" : changePct >= 0 ? "text-green-600" : "text-red-600"
+                        e.changePct === null ? "text-gray-400" : (e.changePct ?? 0) >= 0 ? "text-green-600" : "text-red-600"
                       }`}>
-                        {changePct !== null ? `${changePct >= 0 ? "+" : ""}${changePct.toFixed(2)}%` : "—"}
+                        {e.changePct !== null ? `${(e.changePct ?? 0) >= 0 ? "+" : ""}${e.changePct?.toFixed(2)}%` : "—"}
                       </td>
                       <td className="px-4 py-3 text-right tabular-nums text-gray-500">
                         {e.date_added}
@@ -167,8 +179,7 @@ export default function Watchlist() {
                         </div>
                       </td>
                     </tr>
-                  );
-                })}
+                  ))}
               </tbody>
             </table>
           )}
