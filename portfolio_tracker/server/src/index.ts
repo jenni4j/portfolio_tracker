@@ -105,15 +105,17 @@ app.get("/api/metrics", async (req, res) => {
     if (!ticker) return res.status(400).json({ error: "ticker required" });
 
     const summary = await yf.quoteSummary(ticker, {
-      modules: ["summaryDetail", "defaultKeyStatistics", "financialData", "price"],
+      modules: ["summaryDetail", "defaultKeyStatistics", "financialData", "price", "assetProfile"],
     });
 
     const sd = summary.summaryDetail;
     const ks = summary.defaultKeyStatistics;
     const fd = summary.financialData;
     const pr = summary.price;
+    const ap = summary.assetProfile;
 
     res.json({
+      description: ap?.longBusinessSummary ?? null,
       marketCap: pr?.marketCap ?? sd?.marketCap ?? null,
       trailingPE: sd?.trailingPE ?? null,
       forwardPE: sd?.forwardPE ?? null,

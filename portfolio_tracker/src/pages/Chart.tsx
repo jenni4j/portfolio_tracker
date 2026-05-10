@@ -19,6 +19,7 @@ interface DataPoint {
 }
 
 interface Metrics {
+  description: string | null;
   marketCap: number | null;
   trailingPE: number | null;
   forwardPE: number | null;
@@ -303,7 +304,7 @@ export default function Charts() {
       )}
 
       {selectedTicker && (
-        <div className="mt-6">
+        <div className="mt-6 pb-16">
           <div className="rounded-xl border border-gray-200 overflow-hidden shadow-sm">
             <div className="px-5 py-4 bg-gray-50 border-b border-gray-200">
               <h2 className="text-base font-bold text-gray-800">Key Metrics</h2>
@@ -324,6 +325,15 @@ export default function Charts() {
               </div>
             )}
           </div>
+
+          {!metricsLoading && metrics?.description && (
+            <div className="rounded-xl border border-gray-200 shadow-sm mt-4">
+              <div className="px-5 py-4 bg-gray-50 border-b border-gray-200">
+                <h2 className="text-base font-bold text-gray-800">About</h2>
+              </div>
+              <p className="px-5 py-4 text-sm text-gray-600 leading-relaxed">{metrics.description}</p>
+            </div>
+          )}
         </div>
       )}
     </div>
