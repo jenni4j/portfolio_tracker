@@ -162,12 +162,12 @@ The project has two parts: a Vite + React frontend (`portfolio_tracker/`) and an
 - [x] Portfolio tracking with P&L and return %
 - [x] Watchlist with change % since entry
 - [x] Stock charts and key financial metrics
+- [x] News headlines for held stocks and watchlist
+- [x] Multi-currency support
 - [x] Benji — AI investing assistant
 - [ ] Explore open-source LLMs beyond Anthropic models
 - [ ] Improve mobile behavior
 - [ ] Support for assets beyond equities (cash, crypto)
-- [ ] News headlines for held stocks and watchlist
-- [ ] Multi-currency support
 
 See the [open issues](https://github.com/jenni4j/portfolio_tracker/issues) for a full list of proposed features and known issues.
 
