@@ -11,6 +11,7 @@ interface WatchlistEntry {
   price_at_entry: number;
   date_added: string;
   currentPrice?: number;
+  currency?: string;
 }
 
 export default function Watchlist() {
@@ -43,14 +44,18 @@ export default function Watchlist() {
       `${BASE_URL}/api/quotes?tickers=${tickers}`
     );
     const quotes = await res.json();
-    const quoteMap: Record<string, number> = Object.fromEntries(
-      quotes.map((q: { ticker: string; lastPrice: number }) => [q.ticker, q.lastPrice])
+    const quoteMap: Record<string, { lastPrice: number; currency: string }> = Object.fromEntries(
+      quotes.map((q: { ticker: string; lastPrice: number; currency: string }) => [
+        q.ticker,
+        { lastPrice: q.lastPrice, currency: q.currency ?? "USD" },
+      ])
     );
 
     setEntries(
       data.map((e) => ({
         ...e,
-        currentPrice: quoteMap[e.ticker] ?? undefined,
+        currentPrice: quoteMap[e.ticker]?.lastPrice ?? undefined,
+        currency: quoteMap[e.ticker]?.currency ?? "USD",
       }))
     );
     setLoading(false);
@@ -120,6 +125,7 @@ export default function Watchlist() {
               <thead className="bg-[#e9ecf1] text-xs uppercase tracking-wider font-bold border-b border-gray-200">
                 <tr>
                   <th className="px-4 py-3 text-left w-1/6">Ticker</th>
+                  <th className="px-4 py-3 text-left w-[72px]">Currency</th>
                   <th className="px-4 py-3 text-right w-1/6">Entry Price</th>
                   <th className="px-4 py-3 text-right w-1/6">Current Price</th>
                   <th className="px-4 py-3 text-right w-1/6 cursor-pointer" onClick={() => setSortDesc((d) => !d)}>
@@ -155,6 +161,7 @@ export default function Watchlist() {
                           </div>
                         )}
                       </td>
+                      <td className="px-4 py-3 text-xs text-gray-400 font-semibold">{e.currency ?? "USD"}</td>
                       <td className="px-4 py-3 text-right tabular-nums text-gray-500">
                         ${e.price_at_entry.toFixed(2)}
                       </td>

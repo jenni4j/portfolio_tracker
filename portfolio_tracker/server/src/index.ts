@@ -31,9 +31,10 @@ app.get("/api/quotes", async (req, res) => {
             description: summary.assetProfile?.industry ?? "",
             lastPrice: summary.price?.regularMarketPrice ?? 0,
             regularMarketChangePercent: summary.price?.regularMarketChangePercent ?? 0,
+            currency: summary.price?.currency ?? "USD",
           };
         } catch {
-          return { ticker, name: ticker, description: "", lastPrice: 0, regularMarketChangePercent: 0 };
+          return { ticker, name: ticker, description: "", lastPrice: 0, regularMarketChangePercent: 0, currency: "USD" };
         }
       })
     );
@@ -169,33 +170,38 @@ app.get("/api/news", async (req, res) => {
     if (!tickers) return res.status(400).json({ error: "tickers required" });
 
     const symbols = [...new Set(tickers.split(",").filter(Boolean))];
+    const limit = Math.min(parseInt(req.query.limit?.toString() ?? "1") || 1, 10);
     const sevenDaysAgo = Date.now() / 1000 - 7 * 24 * 3600;
 
     const results = await Promise.allSettled(
       symbols.map(async (ticker) => {
         const r = await yf.search(ticker, {}, { validateResult: false }) as any;
         const items: any[] = r.news ?? [];
-        if (!items.length) return null;
+        if (!items.length) return [];
 
-        // Only accept news Yahoo explicitly tagged with this ticker
         const tickerUpper = ticker.toUpperCase();
-        const item = items.find((n: any) =>
-          Array.isArray(n.relatedTickers) &&
-          n.relatedTickers.some((t: string) => t.toUpperCase() === tickerUpper)
-        );
-        if (!item) return null;
+        const matched = items
+          .filter((n: any) =>
+            Array.isArray(n.relatedTickers) &&
+            n.relatedTickers.some((t: string) => t.toUpperCase() === tickerUpper)
+          )
+          .slice(0, limit);
 
-        const publishedAt = item.providerPublishTime instanceof Date
-          ? item.providerPublishTime.getTime() / 1000
-          : (item.providerPublishTime ?? 0);
-        if (publishedAt < sevenDaysAgo) return null;
-        return { uuid: item.uuid, title: item.title, publisher: item.publisher, link: item.link, publishedAt, ticker };
+        return matched
+          .map((item: any) => {
+            const publishedAt = item.providerPublishTime instanceof Date
+              ? item.providerPublishTime.getTime() / 1000
+              : (item.providerPublishTime ?? 0);
+            if (publishedAt < sevenDaysAgo) return null;
+            return { uuid: item.uuid, title: item.title, publisher: item.publisher, link: item.link, publishedAt, ticker };
+          })
+          .filter(Boolean);
       })
     );
 
     const news = results
-      .filter((r): r is PromiseFulfilledResult<NonNullable<any>> => r.status === "fulfilled" && r.value !== null)
-      .map((r) => r.value)
+      .filter((r): r is PromiseFulfilledResult<any[]> => r.status === "fulfilled")
+      .flatMap((r) => r.value)
       .sort((a, b) => b.publishedAt - a.publishedAt);
 
     res.json(news);

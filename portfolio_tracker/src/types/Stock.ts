@@ -9,4 +9,5 @@ export interface Stock {
     value: number;
     returnPct: number;
     pnl: number;
+    currency?: string;
   }

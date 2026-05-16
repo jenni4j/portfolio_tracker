@@ -59,6 +59,7 @@ export default function Portfolio() {
         description: y?.description ?? "",
         lastPrice: y?.lastPrice ?? 0,
         initialPrice: s.initial_price,
+        currency: y?.currency ?? "USD",
         value: (s.shares ?? 0) * (y?.lastPrice ?? 0),
         pnl: ((y?.lastPrice ?? 0) - (s.initial_price ?? 0)) * (s.shares ?? 0),
         returnPct:

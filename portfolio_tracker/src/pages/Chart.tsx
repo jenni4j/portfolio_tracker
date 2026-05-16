@@ -48,6 +48,22 @@ const PERIODS: { label: string; value: Period }[] = [
 
 import { BASE_URL } from "../lib/api";
 
+interface NewsItem {
+  uuid: string;
+  title: string;
+  publisher: string;
+  link: string;
+  publishedAt: number;
+  ticker: string;
+}
+
+function timeAgo(unixSec: number): string {
+  const diff = Math.floor(Date.now() / 1000 - unixSec);
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
 function fmtLarge(n: number | null): string {
   if (n == null) return "—";
   if (Math.abs(n) >= 1e12) return `$${(n / 1e12).toFixed(2)}T`;
@@ -80,6 +96,8 @@ export default function Charts() {
   const [loading, setLoading] = useState(false);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [metricsLoading, setMetricsLoading] = useState(false);
+  const [news, setNews] = useState<NewsItem[]>([]);
+  const [newsLoading, setNewsLoading] = useState(false);
   const [watchlistAdded, setWatchlistAdded] = useState(false);
 
   const fetchHistory = async (ticker: string, p: Period) => {
@@ -92,6 +110,20 @@ export default function Charts() {
       setChartData([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchNews = async (ticker: string) => {
+    setNewsLoading(true);
+    setNews([]);
+    try {
+      const res = await fetch(`${BASE_URL}/api/news?tickers=${ticker}&limit=5`);
+      if (!res.ok) return;
+      setNews(await res.json());
+    } catch {
+      // news is optional — fail silently
+    } finally {
+      setNewsLoading(false);
     }
   };
 
@@ -145,8 +177,10 @@ export default function Charts() {
   useEffect(() => {
     if (selectedTicker) {
       fetchMetrics(selectedTicker.symbol);
+      fetchNews(selectedTicker.symbol);
     } else {
       setMetrics(null);
+      setNews([]);
     }
   }, [selectedTicker]);
 
@@ -332,6 +366,36 @@ export default function Charts() {
                 <h2 className="text-base font-bold text-gray-800">About</h2>
               </div>
               <p className="px-5 py-4 text-sm text-gray-600 leading-relaxed">{metrics.description}</p>
+            </div>
+          )}
+
+          {(newsLoading || news.length > 0) && (
+            <div className="rounded-xl border border-gray-200 shadow-sm mt-4">
+              <div className="px-5 py-4 bg-gray-50 border-b border-gray-200">
+                <h2 className="text-base font-bold text-gray-800">Recent News</h2>
+              </div>
+              {newsLoading && <p className="text-gray-500 text-sm px-5 py-6">Loading news...</p>}
+              {!newsLoading && (
+                <ul className="divide-y divide-gray-100">
+                  {news.map((item) => (
+                    <li key={item.uuid} className="px-5 py-4 bg-white hover:bg-gray-50 transition-colors">
+                      <a
+                        href={item.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm font-semibold text-gray-800 hover:text-blue-600 leading-snug block mb-1.5"
+                      >
+                        {item.title}
+                      </a>
+                      <div className="flex items-center gap-2 text-xs text-gray-400">
+                        <span>{item.publisher}</span>
+                        <span>·</span>
+                        <span>{timeAgo(item.publishedAt)}</span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           )}
         </div>

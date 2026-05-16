@@ -86,6 +86,7 @@ export default function PortfolioTable({ portfolio, refresh, onDelete }: Portfol
         <thead className="bg-[#e9ecf1] text-xs uppercase tracking-wider font-bold border-b border-gray-200">
           <tr>
             <th className="px-4 py-3 text-left w-1/8">Ticker</th>
+            <th className="px-4 py-3 text-left w-[72px]">Currency</th>
             <th className="px-4 py-3 text-right w-1/8">Last Price</th>
             <th className="px-4 py-3 text-right w-1/8">Entry Price</th>
             <th className="px-4 py-3 text-right w-1/8">Shares</th>
@@ -122,6 +123,7 @@ export default function PortfolioTable({ portfolio, refresh, onDelete }: Portfol
                 )}
               </td>
 
+              <td className="px-4 py-3 text-xs text-gray-400 font-semibold">{s.currency ?? "USD"}</td>
               <td className="px-4 py-3 text-right tabular-nums text-gray-700">${fmt(s.lastPrice)}</td>
               <td className="px-4 py-3 text-right tabular-nums text-gray-500">${fmt(s.initialPrice)}</td>
               <td className="px-4 py-3 text-right tabular-nums text-gray-700">{s.shares}</td>
