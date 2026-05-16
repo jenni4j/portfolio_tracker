@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import PortfolioTable from "../components/PortfolioTable";
 import type { Stock } from "../types/Stock";
 import { supabase } from "../lib/supabaseClient";
+import { BASE_URL } from "../lib/api";
 
 interface Portfolio {
   id: number;
@@ -44,7 +45,7 @@ export default function Portfolio() {
     const allTickers = Array.from(new Set(allStocks.map((s) => s.ticker)));
   
     const res = await fetch(
-      `https://portfolio-tracker-server-ten.vercel.app/api/quotes?tickers=${allTickers.join(",")}`
+      `${BASE_URL}/api/quotes?tickers=${allTickers.join(",")}`
     );
     const yahooData = await res.json();
   

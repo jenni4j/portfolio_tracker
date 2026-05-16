@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { SendHorizonal } from "lucide-react";
 
-const BASE_URL = "https://portfolio-tracker-server-ten.vercel.app";
+import { BASE_URL } from "../lib/api";
 
 interface Message {
   role: "user" | "assistant";

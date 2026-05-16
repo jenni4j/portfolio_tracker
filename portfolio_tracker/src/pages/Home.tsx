@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
-
-const BASE_URL = "https://portfolio-tracker-server-ten.vercel.app";
+import { BASE_URL } from "../lib/api";
 
 const INDEX_TICKERS = ["^GSPC", "^IXIC", "^DJI", "^RUT"];
 const INDEX_LABELS: Record<string, string> = {
@@ -12,15 +10,6 @@ const INDEX_LABELS: Record<string, string> = {
   "^RUT": "Russell 2000",
 };
 
-function fmtLarge(n: number): string {
-  const abs = Math.abs(n);
-  const sign = n < 0 ? "-" : "";
-  if (abs >= 1e12) return `${sign}$${(abs / 1e12).toFixed(2)}T`;
-  if (abs >= 1e9) return `${sign}$${(abs / 1e9).toFixed(2)}B`;
-  if (abs >= 1e6) return `${sign}$${(abs / 1e6).toFixed(2)}M`;
-  return `${sign}$${abs.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
 interface IndexQuote {
   ticker: string;
   displayName: string;
@@ -28,34 +17,26 @@ interface IndexQuote {
   regularMarketChangePercent: number;
 }
 
-interface EnrichedHolding {
-  id: number;
+interface NewsItem {
+  uuid: string;
+  title: string;
+  publisher: string;
+  link: string;
+  publishedAt: number;
   ticker: string;
-  shares: number;
-  currentPrice: number;
-  initialPrice: number;
-  value: number;
-  pnl: number;
-  returnPct: number;
 }
 
-interface EnrichedWatchEntry {
-  id: number;
-  ticker: string;
-  name: string | null;
-  price_at_entry: number;
-  currentPrice: number | undefined;
-  changePct: number | null;
+function timeAgo(unixSec: number): string {
+  const diff = Math.floor(Date.now() / 1000 - unixSec);
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
 }
 
 export default function Home() {
   const [displayName, setDisplayName] = useState<string>("");
   const [indices, setIndices] = useState<IndexQuote[]>([]);
-  const [holdings, setHoldings] = useState<EnrichedHolding[]>([]);
-  const [totalValue, setTotalValue] = useState<number>(0);
-  const [totalPnl, setTotalPnl] = useState<number>(0);
-  const [totalCost, setTotalCost] = useState<number>(0);
-  const [watchlist, setWatchlist] = useState<EnrichedWatchEntry[]>([]);
+  const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -93,62 +74,26 @@ export default function Home() {
         return;
       }
 
-      // Round 2: portfolio stocks + watchlist in parallel
-      const [{ data: allStocksData }, { data: watchlistData }] = await Promise.all([
-        supabase.from("stocks").select("*").eq("user_id", rawUser.id),
-        supabase
-          .from("watchlist")
-          .select("*")
-          .eq("user_id", rawUser.id)
-          .order("date_added", { ascending: false }),
+      // Round 2: collect unique tickers from portfolio + watchlist
+      const [{ data: stocksData }, { data: watchlistData }] = await Promise.all([
+        supabase.from("stocks").select("ticker").eq("user_id", rawUser.id),
+        supabase.from("watchlist").select("ticker").eq("user_id", rawUser.id),
       ]);
 
-      // Round 3: single combined quotes call for all unique tickers
-      const stockTickers = [...new Set((allStocksData ?? []).map((s: any) => s.ticker))] as string[];
-      const watchTickers = [...new Set((watchlistData ?? []).map((e: any) => e.ticker))] as string[];
-      const allTickers = [...new Set([...stockTickers, ...watchTickers])];
+      const allTickers = [
+        ...new Set([
+          ...(stocksData ?? []).map((s: any) => s.ticker as string),
+          ...(watchlistData ?? []).map((e: any) => e.ticker as string),
+        ]),
+      ];
 
-      let quoteMap: Record<string, { lastPrice: number }> = {};
+      // Round 3: news for all tickers
       if (allTickers.length) {
-        const quotesRaw = await fetch(
-          `${BASE_URL}/api/quotes?tickers=${allTickers.join(",")}`
-        )
+        const newsRaw = await fetch(`${BASE_URL}/api/news?tickers=${allTickers.join(",")}`)
           .then((r) => r.json())
           .catch(() => []);
-        quoteMap = Object.fromEntries(
-          (quotesRaw as any[]).map((q: any) => [q.ticker, { lastPrice: q.lastPrice ?? 0 }])
-        );
+        setNews(Array.isArray(newsRaw) ? newsRaw : []);
       }
-
-      // Enrich holdings
-      const enriched: EnrichedHolding[] = (allStocksData ?? []).map((s: any) => {
-        const currentPrice = quoteMap[s.ticker]?.lastPrice ?? 0;
-        const initialPrice = s.initial_price ?? 0;
-        const shares = s.shares ?? 0;
-        const value = shares * currentPrice;
-        const pnl = (currentPrice - initialPrice) * shares;
-        const returnPct = initialPrice > 0 ? ((currentPrice - initialPrice) / initialPrice) * 100 : 0;
-        return { id: s.id, ticker: s.ticker, shares, currentPrice, initialPrice, value, pnl, returnPct };
-      });
-      setHoldings(enriched);
-
-      const tv = enriched.reduce((acc, h) => acc + h.value, 0);
-      const tpnl = enriched.reduce((acc, h) => acc + h.pnl, 0);
-      const tc = enriched.reduce((acc, h) => acc + h.initialPrice * h.shares, 0);
-      setTotalValue(tv);
-      setTotalPnl(tpnl);
-      setTotalCost(tc);
-
-      // Enrich watchlist
-      const enrichedWatch: EnrichedWatchEntry[] = (watchlistData ?? []).map((e: any) => {
-        const currentPrice = quoteMap[e.ticker]?.lastPrice;
-        const changePct =
-          currentPrice !== undefined && e.price_at_entry > 0
-            ? ((currentPrice - e.price_at_entry) / e.price_at_entry) * 100
-            : null;
-        return { id: e.id, ticker: e.ticker, name: e.name, price_at_entry: e.price_at_entry, currentPrice, changePct };
-      });
-      setWatchlist(enrichedWatch);
 
       setLoading(false);
     };
@@ -164,7 +109,6 @@ export default function Home() {
     month: "long",
     day: "numeric",
   });
-  const totalReturnPct = totalCost > 0 ? (totalPnl / totalCost) * 100 : 0;
 
   return (
     <div className="max-w-5xl mx-auto mt-10 pb-16">
@@ -212,142 +156,34 @@ export default function Home() {
             })}
       </div>
 
-      {/* Portfolio Summary */}
-      <div className="rounded-xl border border-gray-200 shadow-sm mb-6">
-        <div className="px-5 py-4 bg-gray-50 border-b border-gray-200 flex items-baseline justify-between">
-          <h2 className="text-base font-bold text-gray-800">Portfolio</h2>
-          {!loading && holdings.length > 0 && (
-            <div className="flex items-baseline gap-4">
-              <span className="text-2xl font-bold tabular-nums text-gray-900">
-                {fmtLarge(totalValue)}
-              </span>
-              <span className={`text-base font-semibold tabular-nums ${totalPnl >= 0 ? "text-green-600" : "text-red-600"}`}>
-                {totalPnl >= 0 ? "+" : ""}{fmtLarge(totalPnl)}{" "}
-                ({totalReturnPct >= 0 ? "+" : ""}{totalReturnPct.toFixed(2)}%)
-              </span>
-            </div>
-          )}
+      {/* Recent news*/}
+      {!loading && news.length > 0 && (
+        <div className="rounded-xl border border-gray-200 shadow-sm">
+          <div className="px-5 py-4 bg-gray-50 border-b border-gray-200">
+            <h2 className="text-base font-bold text-gray-800">Recent headlines for your stocks</h2>
+          </div>
+          <ul className="divide-y divide-gray-100">
+            {news.map((item) => (
+              <li key={item.uuid} className="px-5 py-4 bg-white hover:bg-gray-50 transition-colors">
+                <a
+                  href={item.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm font-semibold text-gray-800 hover:text-blue-600 leading-snug block mb-1.5"
+                >
+                  {item.title}
+                </a>
+                <div className="flex items-center gap-2 text-xs text-gray-400">
+                  <span className="px-1.5 py-0.5 rounded bg-[#eef4ff] text-blue-700 font-semibold">{item.ticker}</span>
+                  <span>{item.publisher}</span>
+                  <span>·</span>
+                  <span>{timeAgo(item.publishedAt)}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
         </div>
-
-        {loading && (
-          <p className="text-gray-400 text-sm px-5 py-6">Loading portfolio...</p>
-        )}
-
-        {!loading && holdings.length === 0 && (
-          <p className="text-gray-400 text-sm px-5 py-8 text-center">
-            No holdings yet.{" "}
-            <Link to="/portfolio" className="text-blue-500 hover:underline">
-              Add your first stock
-            </Link>
-            .
-          </p>
-        )}
-
-        {!loading && holdings.length > 0 && (
-          <table className="w-full table-fixed text-sm">
-            <thead className="bg-[#e9ecf1] text-xs uppercase tracking-wider font-bold border-b border-gray-200">
-              <tr>
-                <th className="px-4 py-3 text-left w-1/5">Ticker</th>
-                <th className="px-4 py-3 text-right w-1/5">Shares</th>
-                <th className="px-4 py-3 text-right w-1/5">Value</th>
-                <th className="px-4 py-3 text-right w-1/5">P&amp;L</th>
-                <th className="px-4 py-3 text-right w-1/5">Return %</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {holdings.map((h) => (
-                <tr key={h.id} className="group/row bg-white hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 font-semibold text-gray-800">{h.ticker}</td>
-                  <td className="px-4 py-3 text-right tabular-nums text-gray-600">{h.shares}</td>
-                  <td className="px-4 py-3 text-right tabular-nums text-gray-700">
-                    ${h.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </td>
-                  <td className={`px-4 py-3 text-right tabular-nums ${h.pnl >= 0 ? "text-green-600" : "text-red-600"}`}>
-                    {h.pnl >= 0 ? "+" : ""}$
-                    {Math.abs(h.pnl).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </td>
-                  <td className={`px-4 py-3 text-right tabular-nums ${h.returnPct >= 0 ? "text-green-600" : "text-red-600"}`}>
-                    {h.returnPct >= 0 ? "+" : ""}{h.returnPct.toFixed(2)}%
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-
-        <div className="border-t border-gray-200 px-5 py-3 bg-gray-50 flex justify-end">
-          <Link to="/portfolio" className="text-xs text-gray-500 hover:text-gray-800 font-semibold transition">
-            View Portfolio →
-          </Link>
-        </div>
-      </div>
-
-      {/* Watchlist Snapshot */}
-      <div className="rounded-xl border border-gray-200 shadow-sm">
-        <div className="px-5 py-4 bg-gray-50 border-b border-gray-200">
-          <h2 className="text-base font-bold text-gray-800">Watchlist</h2>
-        </div>
-
-        {loading && (
-          <p className="text-gray-400 text-sm px-5 py-6">Loading watchlist...</p>
-        )}
-
-        {!loading && watchlist.length === 0 && (
-          <p className="text-gray-400 text-sm px-5 py-8 text-center">
-            Watchlist is empty.{" "}
-            <Link to="/watchlist" className="text-blue-500 hover:underline">
-              Add a stock
-            </Link>
-            .
-          </p>
-        )}
-
-        {!loading && watchlist.length > 0 && (
-          <table className="w-full table-fixed text-sm">
-            <thead className="bg-[#e9ecf1] text-xs uppercase tracking-wider font-bold border-b border-gray-200">
-              <tr>
-                <th className="px-4 py-3 text-left w-1/4">Ticker</th>
-                <th className="px-4 py-3 text-right w-1/4">Entry Price</th>
-                <th className="px-4 py-3 text-right w-1/4">Current Price</th>
-                <th className="px-4 py-3 text-right w-1/4">Change %</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {watchlist.map((e) => (
-                <tr key={e.id} className="group/row bg-white hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 font-semibold text-gray-800 relative group/ticker">
-                    {e.ticker}
-                    {e.name && (
-                      <div className="absolute left-0 top-full mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded shadow-lg z-10 whitespace-nowrap hidden group-hover/ticker:block pointer-events-none">
-                        {e.name}
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right tabular-nums text-gray-500">
-                    ${e.price_at_entry.toFixed(2)}
-                  </td>
-                  <td className="px-4 py-3 text-right tabular-nums text-gray-700">
-                    {e.currentPrice !== undefined ? `$${e.currentPrice.toFixed(2)}` : "—"}
-                  </td>
-                  <td className={`px-4 py-3 text-right tabular-nums ${
-                    e.changePct === null ? "text-gray-400" : e.changePct >= 0 ? "text-green-600" : "text-red-600"
-                  }`}>
-                    {e.changePct !== null
-                      ? `${e.changePct >= 0 ? "+" : ""}${e.changePct.toFixed(2)}%`
-                      : "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-
-        <div className="border-t border-gray-200 px-5 py-3 bg-gray-50 flex justify-end">
-          <Link to="/watchlist" className="text-xs text-gray-500 hover:text-gray-800 font-semibold transition">
-            View Watchlist →
-          </Link>
-        </div>
-      </div>
+      )}
 
     </div>
   );

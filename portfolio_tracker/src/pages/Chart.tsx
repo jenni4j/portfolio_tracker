@@ -46,7 +46,7 @@ const PERIODS: { label: string; value: Period }[] = [
   { label: "5Y", value: "5y" },
 ];
 
-const BASE_URL = "https://portfolio-tracker-server-ten.vercel.app";
+import { BASE_URL } from "../lib/api";
 
 function fmtLarge(n: number | null): string {
   if (n == null) return "—";

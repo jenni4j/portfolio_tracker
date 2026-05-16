@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { MessageSquare, X, SendHorizonal } from "lucide-react";
 import { supabase } from "../lib/supabaseClient";
-
-const BASE_URL = "https://portfolio-tracker-server-ten.vercel.app";
+import { BASE_URL } from "../lib/api";
 
 interface Message {
   role: "user" | "assistant";

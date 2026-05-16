@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Trash2, ChevronUp, ChevronDown } from "lucide-react";
 import StockSearch from "../components/StockSearch";
 import { supabase } from "../lib/supabaseClient";
+import { BASE_URL } from "../lib/api";
 
 interface WatchlistEntry {
   id: number;
@@ -39,7 +40,7 @@ export default function Watchlist() {
 
     const tickers = [...new Set(data.map((e) => e.ticker))].join(",");
     const res = await fetch(
-      `https://portfolio-tracker-server-ten.vercel.app/api/quotes?tickers=${tickers}`
+      `${BASE_URL}/api/quotes?tickers=${tickers}`
     );
     const quotes = await res.json();
     const quoteMap: Record<string, number> = Object.fromEntries(
@@ -71,7 +72,7 @@ export default function Watchlist() {
     if (!userData?.user) return;
 
     const res = await fetch(
-      `https://portfolio-tracker-server-ten.vercel.app/api/quotes?tickers=${stock.symbol}`
+      `${BASE_URL}/api/quotes?tickers=${stock.symbol}`
     );
     const quotes = await res.json();
     const lastPrice: number = quotes[0]?.lastPrice ?? 0;

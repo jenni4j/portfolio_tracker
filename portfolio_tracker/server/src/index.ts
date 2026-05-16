@@ -163,6 +163,48 @@ app.get("/api/search", async (req, res) => {
   }
 });
 
+app.get("/api/news", async (req, res) => {
+  try {
+    const tickers = req.query.tickers?.toString();
+    if (!tickers) return res.status(400).json({ error: "tickers required" });
+
+    const symbols = [...new Set(tickers.split(",").filter(Boolean))];
+    const sevenDaysAgo = Date.now() / 1000 - 7 * 24 * 3600;
+
+    const results = await Promise.allSettled(
+      symbols.map(async (ticker) => {
+        const r = await yf.search(ticker, {}, { validateResult: false }) as any;
+        const items: any[] = r.news ?? [];
+        if (!items.length) return null;
+
+        // Only accept news Yahoo explicitly tagged with this ticker
+        const tickerUpper = ticker.toUpperCase();
+        const item = items.find((n: any) =>
+          Array.isArray(n.relatedTickers) &&
+          n.relatedTickers.some((t: string) => t.toUpperCase() === tickerUpper)
+        );
+        if (!item) return null;
+
+        const publishedAt = item.providerPublishTime instanceof Date
+          ? item.providerPublishTime.getTime() / 1000
+          : (item.providerPublishTime ?? 0);
+        if (publishedAt < sevenDaysAgo) return null;
+        return { uuid: item.uuid, title: item.title, publisher: item.publisher, link: item.link, publishedAt, ticker };
+      })
+    );
+
+    const news = results
+      .filter((r): r is PromiseFulfilledResult<NonNullable<any>> => r.status === "fulfilled" && r.value !== null)
+      .map((r) => r.value)
+      .sort((a, b) => b.publishedAt - a.publishedAt);
+
+    res.json(news);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "failed to fetch news" });
+  }
+});
+
 // --- Agent tools ---
 
 const agentTools: Anthropic.Tool[] = [
@@ -500,5 +542,10 @@ app.post("/api/agent", async (req, res) => {
     res.status(500).json({ error: "agent request failed" });
   }
 });
+
+if (!process.env.VERCEL) {
+  const PORT = process.env.PORT ?? 3001;
+  app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+}
 
 export default app;

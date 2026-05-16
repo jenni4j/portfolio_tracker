@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { BASE_URL } from "../lib/api";
 
 interface Result {
   symbol: string;
@@ -20,7 +21,7 @@ export default function StockSearch({ onSelect }: { onSelect: (r: Result) => voi
     const timeout = setTimeout(async () => {
       setLoading(true);
       const res = await fetch(
-        `https://portfolio-tracker-server-ten.vercel.app/api/search?q=${query}`
+        `${BASE_URL}/api/search?q=${query}`
       );
       const data = await res.json();
       setResults(data);
