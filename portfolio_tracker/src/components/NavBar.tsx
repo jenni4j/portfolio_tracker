@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 export default function Navbar() {
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   const navigate = useNavigate();
 
   const tabs = [
@@ -35,16 +35,14 @@ export default function Navbar() {
             </NavLink>
           </li>
         ))}
-        {user && (
-          <li className="w-full text-center">
-            <button
-              onClick={handleLogout}
-              className="block py-5 px-3 text-sm font-semibold text-red-600 hover:bg-[#ffeaea] transition cursor-pointer"
-            >
-              Logout
-            </button>
-          </li>
-        )}
+        <li className="w-full text-center">
+          <button
+            onClick={handleLogout}
+            className="block py-5 px-3 text-sm font-semibold text-red-600 hover:bg-[#ffeaea] transition cursor-pointer"
+          >
+            Logout
+          </button>
+        </li>
       </ul>
     </nav>
   );
