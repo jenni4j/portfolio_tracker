@@ -10,6 +10,8 @@ import {
 } from "recharts";
 import StockSearch from "../components/StockSearch";
 import { supabase } from "../lib/supabaseClient";
+import { BASE_URL } from "../lib/api";
+import { timeAgo, todayString, type NewsItem } from "../lib/utils";
 
 type Period = "1d" | "1m" | "6m" | "1y" | "5y";
 
@@ -45,24 +47,6 @@ const PERIODS: { label: string; value: Period }[] = [
   { label: "1Y", value: "1y" },
   { label: "5Y", value: "5y" },
 ];
-
-import { BASE_URL } from "../lib/api";
-
-interface NewsItem {
-  uuid: string;
-  title: string;
-  publisher: string;
-  link: string;
-  publishedAt: number;
-  ticker: string;
-}
-
-function timeAgo(unixSec: number): string {
-  const diff = Math.floor(Date.now() / 1000 - unixSec);
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  return `${Math.floor(diff / 86400)}d ago`;
-}
 
 function fmtLarge(n: number | null): string {
   if (n == null) return "—";
@@ -149,15 +133,13 @@ export default function Charts() {
     const res = await fetch(`${BASE_URL}/api/quotes?tickers=${selectedTicker.symbol}`);
     const quotes = await res.json();
     const lastPrice: number = quotes[0]?.lastPrice ?? 0;
-    const d = new Date();
-    const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
     await supabase.from("watchlist").insert([{
       user_id: userData.user.id,
       ticker: selectedTicker.symbol,
       name: selectedTicker.name,
       price_at_entry: lastPrice,
-      date_added: today,
+      date_added: todayString(),
     }]);
 
     setWatchlistAdded(true);

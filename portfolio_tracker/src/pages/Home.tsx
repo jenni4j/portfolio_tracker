@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { BASE_URL } from "../lib/api";
+import { timeAgo, type NewsItem } from "../lib/utils";
 
 const INDEX_TICKERS = ["^GSPC", "^IXIC", "^DJI", "^RUT"];
 const INDEX_LABELS: Record<string, string> = {
@@ -15,22 +16,6 @@ interface IndexQuote {
   displayName: string;
   lastPrice: number;
   regularMarketChangePercent: number;
-}
-
-interface NewsItem {
-  uuid: string;
-  title: string;
-  publisher: string;
-  link: string;
-  publishedAt: number;
-  ticker: string;
-}
-
-function timeAgo(unixSec: number): string {
-  const diff = Math.floor(Date.now() / 1000 - unixSec);
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  return `${Math.floor(diff / 86400)}d ago`;
 }
 
 export default function Home() {

@@ -9,6 +9,12 @@ const app = express();
 const yf = new YahooFinance();
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+function makeSupabaseClient(accessToken: string) {
+  return createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!, {
+    global: { headers: { Authorization: `Bearer ${accessToken}` } },
+  });
+}
+
 app.use(cors());
 app.use(express.json());
 
@@ -292,9 +298,7 @@ async function fetchQuoteMap(tickers: string[]): Promise<Record<string, number>>
 }
 
 async function toolGetPortfolio(accessToken: string) {
-  const sb = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!, {
-    global: { headers: { Authorization: `Bearer ${accessToken}` } },
-  });
+  const sb = makeSupabaseClient(accessToken);
 
   const { data: portfolios } = await sb.from("portfolios").select("id, name");
   if (!portfolios?.length) return { portfolios: [] };
@@ -333,9 +337,7 @@ async function toolGetPortfolio(accessToken: string) {
 }
 
 async function toolGetWatchlist(accessToken: string) {
-  const sb = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!, {
-    global: { headers: { Authorization: `Bearer ${accessToken}` } },
-  });
+  const sb = makeSupabaseClient(accessToken);
 
   const { data: entries } = await sb.from("watchlist").select("*").order("date_added", { ascending: false });
   if (!entries?.length) return { watchlist: [] };
@@ -407,22 +409,18 @@ async function toolSearchStocks(query: string) {
 }
 
 async function toolAddToWatchlist(accessToken: string, ticker: string) {
-  const sb = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!, {
-    global: { headers: { Authorization: `Bearer ${accessToken}` } },
-  });
+  const sb = makeSupabaseClient(accessToken);
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return { success: false, error: "Not authenticated" };
 
   const quote = await toolGetQuote(ticker.toUpperCase());
-  const d = new Date();
-  const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
   const { error } = await sb.from("watchlist").insert({
     user_id: user.id,
     ticker: ticker.toUpperCase(),
     name: quote.name,
     price_at_entry: quote.currentPrice,
-    date_added: today,
+    date_added: new Date().toISOString().slice(0, 10),
   });
 
   if (error) return { success: false, error: error.message };
@@ -430,9 +428,7 @@ async function toolAddToWatchlist(accessToken: string, ticker: string) {
 }
 
 async function toolAddToPortfolio(accessToken: string, ticker: string, portfolioName: string, shares: number, entryPrice: number) {
-  const sb = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!, {
-    global: { headers: { Authorization: `Bearer ${accessToken}` } },
-  });
+  const sb = makeSupabaseClient(accessToken);
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return { success: false, error: "Not authenticated" };
 

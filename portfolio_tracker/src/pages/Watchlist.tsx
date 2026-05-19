@@ -3,6 +3,7 @@ import { Trash2, ChevronUp, ChevronDown } from "lucide-react";
 import StockSearch from "../components/StockSearch";
 import { supabase } from "../lib/supabaseClient";
 import { BASE_URL } from "../lib/api";
+import { todayString } from "../lib/utils";
 
 interface WatchlistEntry {
   id: number;
@@ -81,8 +82,6 @@ export default function Watchlist() {
     );
     const quotes = await res.json();
     const lastPrice: number = quotes[0]?.lastPrice ?? 0;
-    const d = new Date();
-    const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
     await supabase.from("watchlist").insert([
       {
@@ -90,7 +89,7 @@ export default function Watchlist() {
         ticker: stock.symbol,
         name: stock.name,
         price_at_entry: lastPrice,
-        date_added: today,
+        date_added: todayString(),
       },
     ]);
 

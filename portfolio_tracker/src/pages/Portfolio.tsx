@@ -33,7 +33,7 @@ export default function Portfolio() {
   
     const { data: allStocks } = await supabase
       .from("stocks")
-      .select("*") /* optimize query later */
+      .select("*")
       .in("portfolio_id", portfolioData.map((p) => p.id));
   
     if (!allStocks) {
