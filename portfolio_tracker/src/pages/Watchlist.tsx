@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Trash2, ChevronUp, ChevronDown } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Trash2, ChevronUp, ChevronDown, StickyNote } from "lucide-react";
 import StockSearch from "../components/StockSearch";
 import { supabase } from "../lib/supabaseClient";
 import { BASE_URL } from "../lib/api";
@@ -11,6 +11,7 @@ interface WatchlistEntry {
   name: string | null;
   price_at_entry: number;
   date_added: string;
+  notes?: string | null;
   currentPrice?: number;
   currency?: string;
 }
@@ -20,6 +21,9 @@ export default function Watchlist() {
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(false);
   const [sortDesc, setSortDesc] = useState(true);
+  const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
+  const [draftNote, setDraftNote] = useState("");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const fetchWatchlist = async () => {
     setLoading(true);
@@ -73,6 +77,12 @@ export default function Watchlist() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
+  useEffect(() => {
+    if (editingNoteId !== null) {
+      textareaRef.current?.focus();
+    }
+  }, [editingNoteId]);
+
   const addToWatchlist = async (stock: { symbol: string; name: string }) => {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData?.user) return;
@@ -99,8 +109,30 @@ export default function Watchlist() {
 
   const deleteEntry = async (id: number) => {
     if (!confirm("Remove from watchlist?")) return;
+    if (editingNoteId === id) setEditingNoteId(null);
     await supabase.from("watchlist").delete().eq("id", id);
     fetchWatchlist();
+  };
+
+  const openNote = (e: WatchlistEntry) => {
+    if (editingNoteId === e.id) {
+      setEditingNoteId(null);
+      return;
+    }
+    setDraftNote(e.notes ?? "");
+    setEditingNoteId(e.id);
+  };
+
+  const saveNote = async (id: number) => {
+    const trimmed = draftNote.trim();
+    await supabase
+      .from("watchlist")
+      .update({ notes: trimmed || null })
+      .eq("id", id);
+    setEntries((prev) =>
+      prev.map((e) => (e.id === id ? { ...e, notes: trimmed || null } : e))
+    );
+    setEditingNoteId(null);
   };
 
   return (
@@ -134,7 +166,7 @@ export default function Watchlist() {
                     </div>
                   </th>
                   <th className="px-4 py-3 text-right w-1/6">Date Added</th>
-                  <th className="px-4 py-3 w-[56px]"></th>
+                  <th className="px-4 py-3 w-[80px]"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -150,43 +182,91 @@ export default function Watchlist() {
                     if (b.changePct === null) return -1;
                     return sortDesc ? b.changePct - a.changePct : a.changePct - b.changePct;
                   })
-                  .map((e) => (
-                    <tr key={e.id} className="group/row bg-white hover:bg-gray-50 transition-colors">
-                      <td className="px-4 py-3 font-semibold relative group/ticker">
-                        {e.ticker}
-                        {e.name && (
-                          <div className="absolute left-0 top-full mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded shadow-lg z-10 whitespace-nowrap hidden group-hover/ticker:block pointer-events-none">
-                            {e.name}
+                  .flatMap((e) => {
+                    const isEditing = editingNoteId === e.id;
+                    const hasNote = !!e.notes;
+                    return [
+                      <tr key={e.id} className="group/row bg-white hover:bg-gray-50 transition-colors">
+                        <td className="px-4 py-3 font-semibold relative group/ticker">
+                          {e.ticker}
+                          {e.name && (
+                            <div className="absolute left-0 top-full mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded shadow-lg z-10 whitespace-nowrap hidden group-hover/ticker:block pointer-events-none">
+                              {e.name}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-gray-400 font-semibold">{e.currency ?? "USD"}</td>
+                        <td className="px-4 py-3 text-right tabular-nums text-gray-500">
+                          ${e.price_at_entry.toFixed(2)}
+                        </td>
+                        <td className="px-4 py-3 text-right tabular-nums text-gray-700">
+                          {e.currentPrice !== undefined ? `$${e.currentPrice.toFixed(2)}` : "—"}
+                        </td>
+                        <td className={`px-4 py-3 text-right tabular-nums ${
+                          e.changePct === null ? "text-gray-400" : (e.changePct ?? 0) >= 0 ? "text-green-600" : "text-red-600"
+                        }`}>
+                          {e.changePct !== null ? `${(e.changePct ?? 0) >= 0 ? "+" : ""}${e.changePct?.toFixed(2)}%` : "—"}
+                        </td>
+                        <td className="px-4 py-3 text-right tabular-nums text-gray-500">
+                          {e.date_added}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex justify-center items-center gap-2 opacity-0 group-hover/row:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => openNote(e)}
+                              className={`cursor-pointer transition hover:scale-110 relative ${
+                                isEditing ? "text-blue-500" : hasNote ? "text-blue-400" : "text-gray-400 hover:text-blue-400"
+                              }`}
+                              title={hasNote ? "Edit note" : "Add note"}
+                            >
+                              <StickyNote className="w-4 h-4" />
+                              {hasNote && !isEditing && (
+                                <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-blue-400" />
+                              )}
+                            </button>
+                            <button
+                              onClick={() => deleteEntry(e.id)}
+                              className="cursor-pointer text-gray-400 hover:text-red-500 hover:scale-110 transition"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </div>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-gray-400 font-semibold">{e.currency ?? "USD"}</td>
-                      <td className="px-4 py-3 text-right tabular-nums text-gray-500">
-                        ${e.price_at_entry.toFixed(2)}
-                      </td>
-                      <td className="px-4 py-3 text-right tabular-nums text-gray-700">
-                        {e.currentPrice !== undefined ? `$${e.currentPrice.toFixed(2)}` : "—"}
-                      </td>
-                      <td className={`px-4 py-3 text-right tabular-nums ${
-                        e.changePct === null ? "text-gray-400" : (e.changePct ?? 0) >= 0 ? "text-green-600" : "text-red-600"
-                      }`}>
-                        {e.changePct !== null ? `${(e.changePct ?? 0) >= 0 ? "+" : ""}${e.changePct?.toFixed(2)}%` : "—"}
-                      </td>
-                      <td className="px-4 py-3 text-right tabular-nums text-gray-500">
-                        {e.date_added}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex justify-center opacity-0 group-hover/row:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => deleteEntry(e.id)}
-                            className="cursor-pointer text-gray-400 hover:text-red-500 hover:scale-110 transition"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                      </tr>,
+                      isEditing && (
+                        <tr key={`note-${e.id}`} className="bg-blue-50 border-t-0">
+                          <td colSpan={7} className="px-4 pb-3 pt-2">
+                            <textarea
+                              ref={textareaRef}
+                              value={draftNote}
+                              onChange={(ev) => setDraftNote(ev.target.value)}
+                              onKeyDown={(ev) => {
+                                if (ev.key === "Escape") setEditingNoteId(null);
+                                if (ev.key === "Enter" && (ev.metaKey || ev.ctrlKey)) saveNote(e.id);
+                              }}
+                              placeholder="Add a note for this stock..."
+                              rows={2}
+                              className="w-full text-sm text-gray-700 bg-white border border-blue-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-300"
+                            />
+                            <div className="flex gap-2 mt-1.5 justify-end">
+                              <button
+                                onClick={() => setEditingNoteId(null)}
+                                className="text-xs text-gray-400 hover:text-gray-600 transition"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                onClick={() => saveNote(e.id)}
+                                className="text-xs bg-blue-500 text-white px-3 py-1 rounded-md hover:bg-blue-600 transition"
+                              >
+                                Save
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ),
+                    ].filter(Boolean);
+                  })}
               </tbody>
             </table>
           )}
