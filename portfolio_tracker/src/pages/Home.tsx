@@ -96,7 +96,7 @@ export default function Home() {
   });
 
   return (
-    <div className="max-w-5xl mx-auto mt-10 pb-16">
+    <div className="max-w-5xl mx-auto mt-10 pb-16 px-4">
 
       {/* Greeting */}
       <div className="mb-6">
@@ -107,7 +107,7 @@ export default function Home() {
       </div>
 
       {/* Market Pulse strip */}
-      <div className="grid grid-cols-4 gap-3 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
         {indices.length === 0
           ? INDEX_TICKERS.map((t) => (
               <div key={t} className="rounded-xl border border-gray-200 shadow-sm bg-white px-4 py-3 animate-pulse">

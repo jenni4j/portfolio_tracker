@@ -56,7 +56,7 @@ export default function AgentPanel() {
 
       {/* Chat panel */}
       {open && (
-        <div className="w-[380px] h-[520px] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden">
+        <div className="w-[calc(100vw-48px)] max-w-[380px] h-[min(520px,calc(100vh-120px))] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden">
 
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-200">

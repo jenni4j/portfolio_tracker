@@ -215,11 +215,11 @@ export default function Charts() {
     : [];
 
   return (
-    <div className="max-w-5xl mx-auto mt-10">
+    <div className="max-w-5xl mx-auto mt-10 px-4 pb-16">
       <h1 className="text-3xl font-bold mb-6">Charts</h1>
 
-      <div className="flex items-center gap-4 mb-6">
-        <div className="w-72">
+      <div className="flex flex-wrap items-center gap-3 mb-6">
+        <div className="w-full sm:w-72">
           {!selectedTicker ? (
             <StockSearch onSelect={(r) => setSelectedTicker(r)} />
           ) : (
@@ -329,7 +329,7 @@ export default function Charts() {
             {!metricsLoading && metrics && (
               <div className="divide-y divide-gray-100">
                 {metricRows.map((row, ri) => (
-                  <div key={ri} className="grid grid-cols-4 divide-x divide-gray-100">
+                  <div key={ri} className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-gray-100">
                     {row.map((cell) => (
                       <div key={cell.label} className="px-4 py-3 bg-white hover:bg-gray-50 transition-colors">
                         <div className="text-xs text-gray-400 uppercase tracking-wide mb-1">{cell.label}</div>

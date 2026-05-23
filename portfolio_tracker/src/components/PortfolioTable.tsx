@@ -82,16 +82,17 @@ export default function PortfolioTable({ portfolio, refresh, onDelete }: Portfol
         </button>
       </div>
 
-      <table className="w-full table-fixed text-sm">
+      <div className="overflow-x-auto">
+      <table className="w-full table-auto text-sm">
         <thead className="bg-[#e9ecf1] text-xs uppercase tracking-wider font-bold border-b border-gray-200">
           <tr>
-            <th className="px-4 py-3 text-left w-1/8">Ticker</th>
-            <th className="px-4 py-3 text-left w-[72px]">Currency</th>
-            <th className="px-4 py-3 text-right w-1/8">Last Price</th>
-            <th className="px-4 py-3 text-right w-1/8">Entry Price</th>
-            <th className="px-4 py-3 text-right w-1/8">Shares</th>
-            <th className="px-4 py-3 text-right w-1/8">Value</th>
-            <th className="px-4 py-3 text-right w-1/8 cursor-pointer" onClick={() => handleSort("pnl")}>
+            <th className="px-4 py-3 text-left">Ticker</th>
+            <th className="px-4 py-3 text-left">Currency</th>
+            <th className="px-4 py-3 text-right whitespace-nowrap">Last Price</th>
+            <th className="px-4 py-3 text-right whitespace-nowrap">Entry Price</th>
+            <th className="px-4 py-3 text-right">Shares</th>
+            <th className="px-4 py-3 text-right">Value</th>
+            <th className="px-4 py-3 text-right cursor-pointer" onClick={() => handleSort("pnl")}>
               <div className="flex items-center justify-end gap-1">
                 P/L
                 {sortField === "pnl"
@@ -99,7 +100,7 @@ export default function PortfolioTable({ portfolio, refresh, onDelete }: Portfol
                   : <ChevronDown className="w-4 h-4 opacity-25" />}
               </div>
             </th>
-            <th className="px-4 py-3 text-right w-1/8 cursor-pointer" onClick={() => handleSort("returnPct")}>
+            <th className="px-4 py-3 text-right whitespace-nowrap cursor-pointer" onClick={() => handleSort("returnPct")}>
               <div className="flex items-center justify-end gap-1">
                 Return %
                 {sortField === "returnPct"
@@ -114,7 +115,7 @@ export default function PortfolioTable({ portfolio, refresh, onDelete }: Portfol
         <tbody className="divide-y divide-gray-100">
           {sortedStocks.map((s) => (
             <tr key={s.id} className="group/row bg-white hover:bg-gray-50 transition-colors">
-              <td className="px-4 py-3 font-semibold relative group/ticker">
+              <td className="px-4 py-3 font-semibold whitespace-nowrap relative group/ticker">
                 {s.ticker}
                 {s.name && (
                   <div className="absolute left-0 top-full mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded shadow-lg z-10 whitespace-nowrap hidden group-hover/ticker:block pointer-events-none">
@@ -124,16 +125,16 @@ export default function PortfolioTable({ portfolio, refresh, onDelete }: Portfol
               </td>
 
               <td className="px-4 py-3 text-xs text-gray-400 font-semibold">{s.currency ?? "USD"}</td>
-              <td className="px-4 py-3 text-right tabular-nums text-gray-700">${fmt(s.lastPrice)}</td>
-              <td className="px-4 py-3 text-right tabular-nums text-gray-500">${fmt(s.initialPrice)}</td>
-              <td className="px-4 py-3 text-right tabular-nums text-gray-700">{s.shares}</td>
-              <td className="px-4 py-3 text-right tabular-nums text-gray-700">${fmt(s.value)}</td>
+              <td className="px-4 py-3 text-right tabular-nums whitespace-nowrap text-gray-700">${fmt(s.lastPrice)}</td>
+              <td className="px-4 py-3 text-right tabular-nums whitespace-nowrap text-gray-500">${fmt(s.initialPrice)}</td>
+              <td className="px-4 py-3 text-right tabular-nums whitespace-nowrap text-gray-700">{s.shares}</td>
+              <td className="px-4 py-3 text-right tabular-nums whitespace-nowrap text-gray-700">${fmt(s.value)}</td>
 
-              <td className={`px-4 py-3 text-right tabular-nums ${s.pnl >= 0 ? "text-green-600" : "text-red-600"}`}>
+              <td className={`px-4 py-3 text-right tabular-nums whitespace-nowrap ${s.pnl >= 0 ? "text-green-600" : "text-red-600"}`}>
                 {s.pnl >= 0 ? "+" : ""}${fmt(s.pnl)}
               </td>
 
-              <td className={`px-4 py-3 text-right tabular-nums ${s.returnPct >= 0 ? "text-green-600" : "text-red-600"}`}>
+              <td className={`px-4 py-3 text-right tabular-nums whitespace-nowrap ${s.returnPct >= 0 ? "text-green-600" : "text-red-600"}`}>
                 {s.returnPct >= 0 ? "+" : ""}{s.returnPct.toFixed(2)}%
               </td>
 
@@ -151,6 +152,7 @@ export default function PortfolioTable({ portfolio, refresh, onDelete }: Portfol
           ))}
         </tbody>
       </table>
+      </div>
 
       {/* Card footer — add entry */}
       <div className="border-t border-gray-200 px-4 py-3 bg-gray-50 flex flex-col items-center gap-3">
@@ -164,8 +166,8 @@ export default function PortfolioTable({ portfolio, refresh, onDelete }: Portfol
         )}
 
         {adding && (
-          <div className="flex items-center gap-3">
-            <div className="w-64">
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <div className="w-56">
               {!selectedStock ? (
                 <StockSearch onSelect={(stock) => setSelectedStock(stock)} />
               ) : (

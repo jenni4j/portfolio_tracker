@@ -136,7 +136,7 @@ export default function Watchlist() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto mt-10 pb-16">
+    <div className="max-w-5xl mx-auto mt-10 pb-16 px-4">
       <div className="flex items-center mb-6">
         <h1 className="text-3xl font-bold">My Watchlist</h1>
       </div>
@@ -152,20 +152,21 @@ export default function Watchlist() {
           )}
 
           {entries.length > 0 && (
-            <table className="w-full table-fixed text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full table-auto text-sm">
               <thead className="bg-[#e9ecf1] text-xs uppercase tracking-wider font-bold border-b border-gray-200">
                 <tr>
-                  <th className="px-4 py-3 text-left w-1/6">Ticker</th>
-                  <th className="px-4 py-3 text-left w-[72px]">Currency</th>
-                  <th className="px-4 py-3 text-right w-1/6">Entry Price</th>
-                  <th className="px-4 py-3 text-right w-1/6">Current Price</th>
-                  <th className="px-4 py-3 text-right w-1/6 cursor-pointer" onClick={() => setSortDesc((d) => !d)}>
+                  <th className="px-4 py-3 text-left">Ticker</th>
+                  <th className="px-4 py-3 text-left">Currency</th>
+                  <th className="px-4 py-3 text-right whitespace-nowrap">Entry Price</th>
+                  <th className="px-4 py-3 text-right whitespace-nowrap">Current Price</th>
+                  <th className="px-4 py-3 text-right whitespace-nowrap cursor-pointer" onClick={() => setSortDesc((d) => !d)}>
                     <div className="flex items-center justify-end gap-1">
                       Change %
                       {sortDesc ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
                     </div>
                   </th>
-                  <th className="px-4 py-3 text-right w-1/6">Date Added</th>
+                  <th className="px-4 py-3 text-right whitespace-nowrap">Date Added</th>
                   <th className="px-4 py-3 w-[80px]"></th>
                 </tr>
               </thead>
@@ -187,7 +188,7 @@ export default function Watchlist() {
                     const hasNote = !!e.notes;
                     return [
                       <tr key={e.id} className="group/row bg-white hover:bg-gray-50 transition-colors">
-                        <td className="px-4 py-3 font-semibold relative group/ticker">
+                        <td className="px-4 py-3 font-semibold whitespace-nowrap relative group/ticker">
                           {e.ticker}
                           {e.name && (
                             <div className="absolute left-0 top-full mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded shadow-lg z-10 whitespace-nowrap hidden group-hover/ticker:block pointer-events-none">
@@ -196,18 +197,18 @@ export default function Watchlist() {
                           )}
                         </td>
                         <td className="px-4 py-3 text-xs text-gray-400 font-semibold">{e.currency ?? "USD"}</td>
-                        <td className="px-4 py-3 text-right tabular-nums text-gray-500">
+                        <td className="px-4 py-3 text-right tabular-nums whitespace-nowrap text-gray-500">
                           ${e.price_at_entry.toFixed(2)}
                         </td>
-                        <td className="px-4 py-3 text-right tabular-nums text-gray-700">
+                        <td className="px-4 py-3 text-right tabular-nums whitespace-nowrap text-gray-700">
                           {e.currentPrice !== undefined ? `$${e.currentPrice.toFixed(2)}` : "—"}
                         </td>
-                        <td className={`px-4 py-3 text-right tabular-nums ${
+                        <td className={`px-4 py-3 text-right tabular-nums whitespace-nowrap ${
                           e.changePct === null ? "text-gray-400" : (e.changePct ?? 0) >= 0 ? "text-green-600" : "text-red-600"
                         }`}>
                           {e.changePct !== null ? `${(e.changePct ?? 0) >= 0 ? "+" : ""}${e.changePct?.toFixed(2)}%` : "—"}
                         </td>
-                        <td className="px-4 py-3 text-right tabular-nums text-gray-500">
+                        <td className="px-4 py-3 text-right tabular-nums whitespace-nowrap text-gray-500">
                           {e.date_added}
                         </td>
                         <td className="px-4 py-3">
@@ -269,6 +270,7 @@ export default function Watchlist() {
                   })}
               </tbody>
             </table>
+            </div>
           )}
 
           {/* Card footer — add entry */}
