@@ -157,7 +157,6 @@ export default function Watchlist() {
               <thead className="bg-[#e9ecf1] text-xs uppercase tracking-wider font-bold border-b border-gray-200">
                 <tr>
                   <th className="px-4 py-3 text-left">Ticker</th>
-                  <th className="px-4 py-3 text-left">Currency</th>
                   <th className="px-4 py-3 text-right whitespace-nowrap">Entry Price</th>
                   <th className="px-4 py-3 text-right whitespace-nowrap">Current Price</th>
                   <th className="px-4 py-3 text-right whitespace-nowrap cursor-pointer" onClick={() => setSortDesc((d) => !d)}>
@@ -167,6 +166,7 @@ export default function Watchlist() {
                     </div>
                   </th>
                   <th className="px-4 py-3 text-right whitespace-nowrap">Date Added</th>
+                  <th className="px-4 py-3 text-left">Currency</th>
                   <th className="px-4 py-3 w-[80px]"></th>
                 </tr>
               </thead>
@@ -196,7 +196,6 @@ export default function Watchlist() {
                             </div>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-xs text-gray-400 font-semibold">{e.currency ?? "USD"}</td>
                         <td className="px-4 py-3 text-right tabular-nums whitespace-nowrap text-gray-500">
                           ${e.price_at_entry.toFixed(2)}
                         </td>
@@ -211,6 +210,7 @@ export default function Watchlist() {
                         <td className="px-4 py-3 text-right tabular-nums whitespace-nowrap text-gray-500">
                           {e.date_added}
                         </td>
+                        <td className="px-4 py-3 text-xs text-gray-400 font-semibold">{e.currency ?? "USD"}</td>
                         <td className="px-4 py-3">
                           <div className="flex justify-center items-center gap-2 opacity-0 group-hover/row:opacity-100 transition-opacity">
                             <button

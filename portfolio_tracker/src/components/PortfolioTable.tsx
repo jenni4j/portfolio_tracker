@@ -87,7 +87,6 @@ export default function PortfolioTable({ portfolio, refresh, onDelete }: Portfol
         <thead className="bg-[#e9ecf1] text-xs uppercase tracking-wider font-bold border-b border-gray-200">
           <tr>
             <th className="px-4 py-3 text-left">Ticker</th>
-            <th className="px-4 py-3 text-left">Currency</th>
             <th className="px-4 py-3 text-right whitespace-nowrap">Last Price</th>
             <th className="px-4 py-3 text-right whitespace-nowrap">Entry Price</th>
             <th className="px-4 py-3 text-right">Shares</th>
@@ -108,6 +107,7 @@ export default function PortfolioTable({ portfolio, refresh, onDelete }: Portfol
                   : <ChevronDown className="w-4 h-4 opacity-25" />}
               </div>
             </th>
+            <th className="px-4 py-3 text-left">Currency</th>
             <th className="px-4 py-3 w-[56px]"></th>
           </tr>
         </thead>
@@ -124,7 +124,6 @@ export default function PortfolioTable({ portfolio, refresh, onDelete }: Portfol
                 )}
               </td>
 
-              <td className="px-4 py-3 text-xs text-gray-400 font-semibold">{s.currency ?? "USD"}</td>
               <td className="px-4 py-3 text-right tabular-nums whitespace-nowrap text-gray-700">${fmt(s.lastPrice)}</td>
               <td className="px-4 py-3 text-right tabular-nums whitespace-nowrap text-gray-500">${fmt(s.initialPrice)}</td>
               <td className="px-4 py-3 text-right tabular-nums whitespace-nowrap text-gray-700">{s.shares}</td>
@@ -137,6 +136,8 @@ export default function PortfolioTable({ portfolio, refresh, onDelete }: Portfol
               <td className={`px-4 py-3 text-right tabular-nums whitespace-nowrap ${s.returnPct >= 0 ? "text-green-600" : "text-red-600"}`}>
                 {s.returnPct >= 0 ? "+" : ""}{s.returnPct.toFixed(2)}%
               </td>
+
+              <td className="px-4 py-3 text-xs text-gray-400 font-semibold">{s.currency ?? "USD"}</td>
 
               <td className="px-4 py-3">
                 <div className="flex justify-center gap-2 opacity-0 group-hover/row:opacity-100 transition-opacity">
